@@ -1,4 +1,4 @@
-from engine.engine import Dice
+from dice import Dice
 import secrets
 
 DICE = Dice()
@@ -8,6 +8,8 @@ class Item:
         self.item_table = {
             "mk64": self.mk64()
         }
+
+        self.choise_table = {1: [], 2: [], 3: []}
 
     def mk64(self):
         id = secrets.token_hex(16)

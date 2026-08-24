@@ -1,4 +1,5 @@
-from engine.engine import Database, Dice
+from database import Database
+from dice import Dice
 DATABASE = Database()
 DICE = Dice()
 
