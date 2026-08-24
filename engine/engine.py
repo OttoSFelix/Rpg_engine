@@ -1,3 +1,5 @@
+from engine.character import Character
+from engine.items import Item
 import psycopg2
 import os
 import random
@@ -88,20 +90,90 @@ class Database:
         WHERE table_schema = 'public' 
         AND table_type = 'BASE TABLE';
         """)
-        print(self.cursor.fetchall())     
+        print(self.cursor.fetchall())
+
+    def get_characters(self):
+        query = """
+        SELECT * FROM characters;
+        """
+        self.cursor.execute(query)
+
+        results = self.cursor.fetchall()
+        return results
+
+    def get_items(self):
+        query = """
+        SELECT * FROM items;
+        """
+        self.cursor.execute(query)
+
+        results = self.cursor.fetchall()
+        return results
+
 
 
 class Dice:
     def throw(self, dice: str):
         amount, sides = dice.split('d')
         result = []
-        for d in range(amount):
-            n = random.randint(1, sides)
+        for d in range(int(amount)):
+            n = random.randint(1, int(sides))
             result.append(n)
         return result
 
 
+class Game:
+    def __init__(self):
+        self.round_table = []
+        self.character_table = {}
+        self.item_table = {}
+        self.db = Database()
+
+    def initialize(self):
+        self.db.init_database()
+
+        for character in self.db.get_characters():
+            id = character[0]
+            self.character_table[id] = Character(
+                id,
+                name=character[1],
+                strength=character[2],
+                dexterity=character[3],
+                toughness=character[4],
+                perseverance=character[5],
+                brilliance=character[6],
+                senses=character[7],
+                presence=character[8],
+                sharpstrike=character[9],
+                ravage=character[10],
+                melee=character[11],
+                special=character[12],
+                stealth=character[13],
+                hardware=character[14],
+                ordnance=character[15],
+                medical=character[16],
+                health=character[17],
+                head=character[18],
+                torso=character[19],
+                right_arm=character[20],
+                left_arm=character[21],
+                right_leg=character[22],
+                left_leg=character[23],
+                mental=character[24],
+                movement_stat=character[25],
+                stamina=character[26],
+                cover=character[27]
+            )
+
+        gen_item = Item()
+        for item in self.db.get_items():
+            id = item[0]
+            self.item_table[id] = gen_item.item_table[item[2]]
+
+
 if __name__ == '__main__':
-    db = Database()
-    db.init_database()
-    db.test_database()
+    d = Dice()
+    print(d.throw('3d12'))
+    # db = Database()
+    # db.init_database()
+    # db.test_database()

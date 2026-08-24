@@ -1,21 +1,34 @@
 from engine.engine import Dice
+import secrets
 
 DICE = Dice()
+
+class Item:
+    def __init__(self):
+        self.item_table = {
+            "mk64": self.mk64()
+        }
+
+    def mk64(self):
+        id = secrets.token_hex(16)
+        print(id)
+        # weapon = Weapon()
+
 class Weapon:
     def __init__(
         self, 
-        item_id, 
-        type, 
-        weight, 
-        precision, 
-        power, 
-        damage,
-        damage_type, 
-        range, 
-        bullet_amount, 
-        miss_threshold,
-        hit_threshold,
-        precise_threshold):
+        item_id: str, 
+        type: str, 
+        weight: int, 
+        precision: int, 
+        power: int, 
+        damage: int,
+        damage_type: str, 
+        range: int, 
+        bullet_amount: int, 
+        miss_threshold: int,
+        hit_threshold: int,
+        precise_threshold: int):
 
         self.type = type
         self.weight = weight
