@@ -1,5 +1,5 @@
-from database import Database
-from dice import Dice
+from engine.database import Database
+from engine.dice import Dice
 DATABASE = Database()
 DICE = Dice()
 
@@ -41,7 +41,7 @@ class Character:
         self.strength = strength
         self.dexterity = dexterity
         self.toughness = toughness
-        self.preseverance = perseverance
+        self.perseverance = perseverance
         self.brilliance = brilliance
         self.senses = senses
         self.presence = presence
@@ -60,18 +60,20 @@ class Character:
         self.left_arm = left_arm
         self.right_leg = right_leg
         self.left_leg = left_leg
-        self.mental = mental,
+        self.mental = mental
         self.movement_stat = movement_stat
         self.stamina = stamina
         self.cover = cover
         self.status = status
 
+        self.body = {'head': self.head, 'torso': self.torso, 'right_arm': self.right_arm, 'left_arm': self.left_arm, 'right_leg': self.right_leg, 'left_leg': self.left_leg}
+
         self.held_weapon = None
 
-    def attack(self, target: 'Character', bodypart):
+    def attack(self, target: 'Character', bodypart: str):
         if not self.mental_check():
             return False
-        target_body = {"head": target.head, "torso": target.torso, "right arm": target.right_arm, "left arm": target.left_arm, "right leg": target.right_leg}
+
         modifier = 0
         if self.held_weapon.type == "sharpstrike":
             modifier += self.sharpstrike
@@ -93,16 +95,27 @@ class Character:
 
         if total_damage > 0:
             target.health -= total_damage
-            try:
-                target_body[bodypart] -= total_damage
-            except KeyError:
-                print(f'Insufficient bodypart paremeter: {bodypart}')
+            target.bodypart_damage(bodypart, total_damage)
             return True
         return False
 
-    def move(self, amount, near_enemy):
+    def bodypart_damage(self, bodypart: str, damage: int):
+        if bodypart == 'head':
+            self.head = max(0, self.head - damage)
+        elif bodypart == 'torso':
+            self.torso = max(0, self.torso - damage)
+        elif bodypart == 'right_arm':
+            self.right_arm = max(0, self.right_arm - damage)
+        elif bodypart == 'left_arm':
+            self.left_arm = max(0, self.left_arm - damage)
+        elif bodypart == 'right_leg':
+            self.right_leg = max(0, self.right_leg - damage)
+        elif bodypart == 'left_leg':
+            self.left_leg = max(0, self.left_leg - damage)
+
+    def move(self, amount: int, near_enemy: bool = False):
         if amount == 3:
-            weight_modifier = self.get_weight_modifier(self.get_inventory_weight())
+            weight_modifier = self.get_weight_modifier(self.get_weight_statistic(self.get_inventory_weight()))
             if self.stamina - weight_modifier < 0:
                 return False
             self.movement_stat = amount
@@ -119,24 +132,30 @@ class Character:
         SELECT SUM(weight) FROM items WHERE character_id = %s;
         """
         DATABASE.cursor.execute(query, (self.id,))
+        result = int(DATABASE.cursor.fetchall()[0][0])
+        DATABASE.conn.commit()
 
-        return int(DATABASE.cursor.fetchall()[0])
+        return result
 
     def get_inventory_items(self):
         query = """
         SELECT * FROM items WHERE character_id = %s;
         """
         DATABASE.cursor.execute(query, (self.id,))
+        result = DATABASE.cursor.fetchall()
+        DATABASE.conn.commit()
 
-        return DATABASE.cursor.fetchall()
+        return result
 
-    def is_in_inventory(self, item):
+    def is_in_inventory(self, item: 'str'):
         query = """
         SELECT * FROM items WHERE character id = %s AND name = %s;
         """
         DATABASE.cursor.execute(query, (self.id, item))
+        result = DATABASE.cursor.fetchall()
+        DATABASE.conn.commit()
 
-        if len(DATABASE.cursor.fetchall()) > 0:
+        if len(result) > 0:
             return True
         return False
 
@@ -145,28 +164,32 @@ class Character:
 
     def mental_check(self):
         roll = DICE.throw('1d12')
-        if roll > self.mental:
+        if roll[0] > self.mental:
             return True
         return False
 
-    def get_weight_modifier(self, weight):
-        if weight <= 5:
+    def get_weight_modifier(self, weight_statistic: int):
+        if weight_statistic <= 5:
             return 5
-        elif weight <= 10:
+        elif weight_statistic <= 10:
             return 4
-        elif weight <= 15:
+        elif weight_statistic <= 15:
             return 3
-        elif weight <= 20:
+        elif weight_statistic <= 20:
             return 2
-        elif weight <= 25:
+        elif weight_statistic <= 25:
             return 1
         return 0
 
-    def delete_item(self, item):
+    def get_weight_statistic(self, weight: int):
+        return (self.strength * 10) - weight
+
+    def delete_item(self, item: str):
         query = """
         DELETE FROM items WHERE item_id = %s;
         """
         DATABASE.cursor.execute(query, (item.id,))
+        DATABASE.conn.commit()
 
     def add_item(self, item):
         query = """
@@ -174,4 +197,5 @@ class Character:
         VALUES (%s, %s, %s, %s)
         """
         DATABASE.cursor.execute(query, (item.id, self.id, item.name, item.weight))
+        DATABASE.conn.commit()
 

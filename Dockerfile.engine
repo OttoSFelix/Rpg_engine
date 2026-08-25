@@ -1,4 +1,4 @@
-FROM python:3.14-slim-trixie
+FROM python:3.14.7-alpine3.24
 
 WORKDIR /app
 
@@ -8,4 +8,4 @@ RUN pip install -r requirements.txt
 
 COPY engine/ ./engine
 
-CMD ["python3", "engine/engine.py"]
+CMD ["python3", "-m", "engine.engine"]

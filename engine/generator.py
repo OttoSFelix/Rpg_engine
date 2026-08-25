@@ -1,8 +1,7 @@
-from items import Item
-from engine import Dice
-
+from engine.items import Item
+from engine.dice import Dice
+DICE = Dice()
 class Generator:
-    DICE = Dice()
     def generate_character_traits(self):
         traits = [
             "strength",
@@ -24,7 +23,7 @@ class Generator:
 
         values = {}
 
-        throws = Dice.throw(f'{len(traits)}d10')
+        throws = DICE.throw(f'{len(traits)}d10')
         for trait, throw in zip(traits, throws):
             if throw < 5:
                 throw += 3

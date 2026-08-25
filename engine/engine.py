@@ -1,7 +1,7 @@
-from character import Character
-from items import Item
-from generator import Generator
-from database import Database
+from engine.character import Character
+from engine.items import Item
+from engine.generator import Generator
+from engine.database import Database
 
 
 class Game:
@@ -11,11 +11,13 @@ class Game:
         self.item_table = {}
         self.db = Database()
         self.generator = Generator()
+        self.character_count = 0
 
     def initialize(self):
         self.db.init_database()
 
         for character in self.db.get_characters():
+            self.character_count += 1
             id = character[0]
             self.character_table[id] = Character(
                 id,
@@ -55,7 +57,8 @@ class Game:
             self.item_table[id] = gen_item.item_table[item[2]]
 
     def add_character(self, values: dict):
-        id = len(self.db.get_characters()) + 1
+        id = self.character_count + 1
+        self.character_count += 1
         character = Character(
             id=id,
             name=values['name'],
@@ -88,6 +91,8 @@ class Game:
             status='None',
         )
         self.character_table[id] = character
+
+        return id
 
     def flush_character_values(self, difficulty):
         values = self.generator.generate_character_traits()

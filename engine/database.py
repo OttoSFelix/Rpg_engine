@@ -5,8 +5,6 @@ class Database:
     def __init__(self):
         self.user = os.environ.get('USER')
         self.password = os.environ.get('PASSWORD')
-        print(f'user: {self.user}')
-        print(f'password: {self.password}')
         
         self.conn = psycopg2.connect(
             dbname='appdb',
@@ -87,6 +85,7 @@ class Database:
         WHERE table_schema = 'public' 
         AND table_type = 'BASE TABLE';
         """)
+        self.conn.commit()
         print(self.cursor.fetchall())
 
     def get_characters(self):
@@ -96,6 +95,7 @@ class Database:
         self.cursor.execute(query)
 
         results = self.cursor.fetchall()
+        self.conn.commit()
         return results
 
     def get_items(self):
@@ -105,5 +105,6 @@ class Database:
         self.cursor.execute(query)
 
         results = self.cursor.fetchall()
+        self.conn.commit()
         return results
 

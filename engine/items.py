@@ -1,4 +1,4 @@
-from dice import Dice
+from engine.dice import Dice
 import secrets
 
 DICE = Dice()
@@ -6,15 +6,36 @@ DICE = Dice()
 class Item:
     def __init__(self):
         self.item_table = {
-            "mk64": self.mk64()
+            "mk64": self.mk64(),
+            "test_item": self.test_item()
         }
 
         self.choise_table = {1: [], 2: [], 3: []}
 
+    def load_item(self, name: str, id: str):
+        item = self.item_table[name]
+        item.item_id = id
+        return item
+
     def mk64(self):
         id = secrets.token_hex(16)
-        print(id)
         # weapon = Weapon()
+
+    def test_item(self):
+        return Weapon(
+            '1',
+            'ravage',
+            7,
+            10,
+            2,
+            2,
+            'sharp',
+            10,
+            2,
+            7,
+            8,
+            12
+        )
 
 class Weapon:
     def __init__(
