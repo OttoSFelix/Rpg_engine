@@ -62,19 +62,23 @@ class Weapon:
         self.range = range
         self.bullet_amount = bullet_amount
         self.item_id = item_id
-
+        
+        self.magazine_bullets = 0
         self.miss_threshold = miss_threshold
         self.hit_threshold = hit_threshold
         self.precise_threshold = precise_threshold
 
-    def attack(self, modifier):
+    def attack(self, modifier: int):
         result = []
         throws = DICE.throw(f'{self.bullet_amount}d12')
         for throw in throws:
             result.append(throw + modifier + self.precision)
+            if self.magazine_bullets - 1 < 0:
+                break
+            self.magazine_bullets -= 1
         return result
 
-    def hit_table(self, throw, cover):
+    def hit_table(self, throw: int, cover: int):
         if throw <= self.miss_threshold:
             return 0
         if throw >= self.hit_threshold and throw < self.precise_threshold:

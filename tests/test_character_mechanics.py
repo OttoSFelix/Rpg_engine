@@ -154,3 +154,14 @@ class TestMechanics(unittest.TestCase):
 
         self.assertEqual(True, valid)
         
+    def test_stat_modifier(self):
+        character: Character = self.game.character_table[1]
+        
+        stats = [5, 6, 1, 4, 8, 9, 7, 10, 3, 0]
+        correct = [0, 1, -2, -1, 2, 2, 1, 3, -1, -3]
+        result = []
+
+        for s in stats:
+            result.append(character.stat_modifier(s))
+        
+        self.assertEqual(correct, result)

@@ -66,8 +66,6 @@ class Character:
         self.cover = cover
         self.status = status
 
-        self.body = {'head': self.head, 'torso': self.torso, 'right_arm': self.right_arm, 'left_arm': self.left_arm, 'right_leg': self.right_leg, 'left_leg': self.left_leg}
-
         self.held_weapon = None
 
     def attack(self, target: 'Character', bodypart: str):
@@ -88,7 +86,7 @@ class Character:
         modifier -= target.movement_stat
 
         rolls = self.held_weapon.attack(modifier)
-        
+
         total_damage = 0
         for r in rolls:
             total_damage += self.held_weapon.hit_table(r, target.cover)
@@ -198,4 +196,133 @@ class Character:
         """
         DATABASE.cursor.execute(query, (item.id, self.id, item.name, item.weight))
         DATABASE.conn.commit()
+
+    def is_injured(self, bodypart: str):
+        query = f"""
+        SELECT {bodypart} FROM injuries WHERE character_id = %s;
+        """
+        DATABASE.cursor.execute(query, (self.id,))
+        result = DATABASE.cursor.fetchall()
+        DATABASE.conn.commit()
+        if len(result) == 0 or result[0][0] == 'None':
+            return False
+        return True
+
+    def injure(self, bodypart: str, damage: int, damage_type: str):
+        query = f"""
+        INSERT INTO injuries(character_id, {bodypart})
+        VALUES(%s, %s);
+        """
+        throw = DICE.throw('1d12')[0] + damage - self.stat_modifier(self.toughness) 
+        injury = self.injury_table(throw, bodypart, damage_type)
+        DATABASE.cursor.execute(query, (self.id, injury))
+        DATABASE.conn.commit()
+
+    def injury_table(self, throw: int, bodypart: str, damage_type: str):
+        table = {
+            'head': {
+                'sharp': {
+                    5: 'wound',
+                    9: 'fracture',
+                    float('inf'): 'down'
+                },
+                'blunt': {
+                    4: 'concussion',
+                    8: 'knocked_out',
+                    float('inf'): 'fracture'
+                }
+            },
+            'torso': {
+                'sharp': {
+                    4: 'None',
+                    10: 'wound',
+                    1000: 'fracture'
+                },
+                'blunt': {
+                    4: 'None',
+                    7: 'impact_stun',
+                    10: 'internal_bleeding',
+                    float('inf'): 'fracture'
+                }
+            },
+            'right_arm': {
+                'sharp': {
+                    4: 'None',
+                    10: 'wound',
+                    float('inf'): 'fracture'
+                },
+                'blunt': {
+                    4: 'None',
+                    6: 'dislocation',
+                    8: 'impact_stun',
+                    10: 'internal_bleeding',
+                    float('inf'): 'fracture'
+                }
+            },
+            'left_arm': {
+                'sharp': {
+                    4: 'None',
+                    10: 'wound',
+                    float('inf'): 'fracture'
+                },
+                'blunt': {
+                    4: 'None',
+                    6: 'dislocation',
+                    8: 'impact_stun',
+                    10: 'internal_bleeding',
+                    float('inf'): 'fracture'
+                }
+            },
+            'right_leg': {
+                'sharp': {
+                    4: 'None',
+                    10: 'wound',
+                    float('inf'): 'fracture'
+                },
+                'blunt': {
+                    4: 'None',
+                    6: 'dislocation',
+                    8: 'impact_stun',
+                    10: 'internal_bleeding',
+                    float('inf'): 'fracture'
+                }
+            },
+            'left_leg': {
+                'sharp': {
+                    4: 'None',
+                    10: 'wound',
+                    float('inf'): 'fracture'
+                },
+                'blunt': {
+                    4: 'None',
+                    6: 'dislocation',
+                    8: 'impact_stun',
+                    10: 'internal_bleeding',
+                    float('inf'): 'fracture'
+                }
+            },
+        }
+
+        try:
+            for threshold, injury in table[bodypart][damage_type].items():
+                if throw <= threshold:
+                    return injury
+        except KeyError:
+            print('Invalid bodypart or damage type in Character.injury_table')
+
+    def stat_modifier(self, value: int):
+        if value == 0:
+            return -3
+        elif value <= 2:
+            return -2
+        elif value <= 4:
+            return -1
+        elif value == 5:
+            return 0
+        elif value <= 7:
+            return 1
+        elif value <= 9:
+            return 2
+        elif value >= 10:
+            return 3
 
