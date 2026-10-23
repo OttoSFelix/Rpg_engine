@@ -108,3 +108,5 @@ class Database:
         self.conn.commit()
         return results
 
+    def save_character(self, values):
+        pass

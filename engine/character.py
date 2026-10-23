@@ -1,6 +1,5 @@
 from engine.database import Database
 from engine.dice import Dice
-DATABASE = Database()
 DICE = Dice()
 
 class Character:
@@ -125,33 +124,33 @@ class Character:
     def mecial_utility(self, item):
         item.use(self)
 
-    def get_inventory_weight(self):
+    def get_inventory_weight(self, database: Database):
         query = """
         SELECT SUM(weight) FROM items WHERE character_id = %s;
         """
-        DATABASE.cursor.execute(query, (self.id,))
-        result = int(DATABASE.cursor.fetchall()[0][0])
-        DATABASE.conn.commit()
+        database.cursor.execute(query, (self.id,))
+        result = int(database.cursor.fetchall()[0][0])
+        database.conn.commit()
 
         return result
 
-    def get_inventory_items(self):
+    def get_inventory_items(self, database: Database):
         query = """
         SELECT * FROM items WHERE character_id = %s;
         """
-        DATABASE.cursor.execute(query, (self.id,))
-        result = DATABASE.cursor.fetchall()
-        DATABASE.conn.commit()
+        database.cursor.execute(query, (self.id,))
+        result = database.cursor.fetchall()
+        database.conn.commit()
 
         return result
 
-    def is_in_inventory(self, item: 'str'):
+    def is_in_inventory(self, item: 'str', database: Database):
         query = """
         SELECT * FROM items WHERE character id = %s AND name = %s;
         """
-        DATABASE.cursor.execute(query, (self.id, item))
-        result = DATABASE.cursor.fetchall()
-        DATABASE.conn.commit()
+        database.cursor.execute(query, (self.id, item))
+        result = database.cursor.fetchall()
+        database.conn.commit()
 
         if len(result) > 0:
             return True
@@ -182,41 +181,41 @@ class Character:
     def get_weight_statistic(self, weight: int):
         return (self.strength * 10) - weight
 
-    def delete_item(self, item: str):
+    def delete_item(self, item: str, database: Database):
         query = """
         DELETE FROM items WHERE item_id = %s;
         """
-        DATABASE.cursor.execute(query, (item.id,))
-        DATABASE.conn.commit()
+        database.cursor.execute(query, (item.id,))
+        database.conn.commit()
 
-    def add_item(self, item):
+    def add_item(self, item, database: Database):
         query = """
         INSERT INTO items(item_id, character_id, name, weight)
         VALUES (%s, %s, %s, %s)
         """
-        DATABASE.cursor.execute(query, (item.id, self.id, item.name, item.weight))
-        DATABASE.conn.commit()
+        database.cursor.execute(query, (item.id, self.id, item.name, item.weight))
+        database.conn.commit()
 
-    def is_injured(self, bodypart: str):
+    def is_injured(self, bodypart: str, database: Database):
         query = f"""
         SELECT {bodypart} FROM injuries WHERE character_id = %s;
         """
-        DATABASE.cursor.execute(query, (self.id,))
-        result = DATABASE.cursor.fetchall()
-        DATABASE.conn.commit()
+        database.cursor.execute(query, (self.id,))
+        result = database.cursor.fetchall()
+        database.conn.commit()
         if len(result) == 0 or result[0][0] == 'None':
             return False
         return True
 
-    def injure(self, bodypart: str, damage: int, damage_type: str):
+    def injure(self, bodypart: str, damage: int, damage_type: str, database: Database):
         query = f"""
         INSERT INTO injuries(character_id, {bodypart})
         VALUES(%s, %s);
         """
         throw = DICE.throw('1d12')[0] + damage - self.stat_modifier(self.toughness) 
         injury = self.injury_table(throw, bodypart, damage_type)
-        DATABASE.cursor.execute(query, (self.id, injury))
-        DATABASE.conn.commit()
+        database.cursor.execute(query, (self.id, injury))
+        database.conn.commit()
 
     def injury_table(self, throw: int, bodypart: str, damage_type: str):
         table = {
@@ -326,3 +325,35 @@ class Character:
         elif value >= 10:
             return 3
 
+    def get_character_attributes(self):
+        values = {
+            "id": self.id,
+            "name": self.name,
+            "strength": self.strength,
+            "dexterity": self.dexterity,
+            "toughness": self.toughness,
+            "perseverance": self.perseverance,
+            "brilliance": self.brilliance,
+            "senses": self.senses,
+            "presence": self.presence,
+            "sharpstrike": self.sharpstrike,
+            "ravage": self.ravage,
+            "melee": self.melee,
+            "special": self.special,
+            "stealth": self.stealth,
+            "hardware": self.hardware,
+            "ordnance": self.ordnance,
+            "medical": self.medical,
+            "health": self.health,
+            "head": self.head,
+            "torso": self.torso,
+            "right_arm": self.right_arm,
+            "left_arm": self.left_arm,
+            "right_leg": self.right_leg,
+            "left_leg": self.left_leg,
+            "mental": self.mental,
+            "movement_stat": self.movement_stat,
+            "stamina": self.stamina,
+            "cover": self.cover,
+            "status": self.status,
+        }

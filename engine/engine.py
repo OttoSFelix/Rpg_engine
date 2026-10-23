@@ -100,10 +100,15 @@ class Game:
             values[trait] += (-3 + difficulty)
         return values
         
+    def save(self):
+        for character in self.character_table.values():
+            values = character.get_character_attributes()
+            self.db.save_character(values)
+
+
 
 
 
 if __name__ == '__main__':
-    db = Database()
-    db.init_database()
-    db.test_database()
+    game = Game()
+    game.save()

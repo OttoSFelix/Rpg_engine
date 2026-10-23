@@ -4,10 +4,21 @@ import secrets
 DICE = Dice()
 
 class Item:
+    RAVAGE_MISS_THRESHOLD = 7
+    RAVAGE_HIT_THRESHOLD = 8
+    RAVAGE_PRECISE_THRESHOLD = 12
+
+    SHARPSTRIKE_MISS_THRESHOLD = 7
+    SHARPSTRIKE_HIT_THRESHOLD = 8
+    SHARPSTRIKE_PRECISE_THRESHOLD = 12
+
     def __init__(self):
         self.item_table = {
-            "mk64": self.mk64(),
-            "test_item": self.test_item()
+            "MXR-17": self.mxr_17(),
+            "SP-R 208": self.spr_208(),
+            "CODA-9": self.coda_9(),
+            "test_item": self.test_item(),
+
         }
 
         self.choise_table = {1: [], 2: [], 3: []}
@@ -17,9 +28,57 @@ class Item:
         item.item_id = id
         return item
 
-    def mk64(self):
+    def mxr_17(self):
         id = secrets.token_hex(16)
-        # weapon = Weapon()
+        return Weapon(
+            item_id=id,
+            type='ravage',
+            weight=10,
+            precision=0,
+            power=3,
+            damage=3,
+            damage_type='sharp',
+            range=50,
+            bullet_amount=None,
+            miss_threshold=Item.RAVAGE_MISS_THRESHOLD,
+            hit_threshold=Item.RAVAGE_HIT_THRESHOLD,
+            precise_threshold=Item.RAVAGE_PRECISE_THRESHOLD
+        )
+
+    def spr_208(self):
+        id = secrets.token_hex(16)
+        return Weapon(
+            item_id=id,
+            type='sharpstrike',
+            weight=10,
+            precision=1,
+            power=2,
+            damage=3,
+            damage_type='sharp',
+            range=100,
+            bullet_amount=1,
+            miss_threshold=Item.SHARPSTRIKE_MISS_THRESHOLD,
+            hit_threshold=Item.SHARPSTRIKE_HIT_THRESHOLD,
+            precise_threshold=Item.SHARPSTRIKE_PRECISE_THRESHOLD
+        )
+
+    def coda_9(self):
+        id = secrets.token_hex(16)
+        return Weapon(
+            item_id=id,
+            type='sharpstrike',
+            weight=5,
+            precision=1,
+            power=1,
+            damage=2,
+            damage_type='sharp',
+            range=50,
+            bullet_amount=1,
+            miss_threshold=Item.SHARPSTRIKE_MISS_THRESHOLD,
+            hit_threshold=Item.SHARPSTRIKE_HIT_THRESHOLD,
+            precise_threshold=Item.SHARPSTRIKE_PRECISE_THRESHOLD
+        )
+
 
     def test_item(self):
         return Weapon(
