@@ -2,11 +2,14 @@ import unittest
 from engine.engine import Game
 from engine.database import Database
 from engine.character import Character
+from tests._base_unittest import DatabaseTestcase
 
-class TestInjuries(unittest.TestCase):
+class TestInjuries(DatabaseTestcase):
     def setUp(self):
         self.db = Database()
         self.db.init_database()
+
+        self.addCleanup(self.clean_database)
 
         query = """
         INSERT INTO characters(id, name, strength, dexterity, toughness, perseverance, brilliance, senses, presence, sharpstrike, ravage, melee, special, stealth, hardware, ordnance, medical, health, head, torso, right_arm, left_arm, right_leg, left_leg, mental, movement_stat, stamina, cover, status)
@@ -23,18 +26,9 @@ class TestInjuries(unittest.TestCase):
         self.game = Game()
         self.game.initialize()
 
-    def tearDown(self):
-        self.db.cursor.execute("""
-            DELETE FROM items;
-            DELETE FROM injuries;
-            DELETE FROM talents;
-            DELETE FROM characters;
-        """)
-        self.db.conn.commit()
-
     def test_injury_in_database(self):
         character: Character = self.game.character_table[1]
-        character.injure('right_arm', 1000, 'sharp')
+        character.injure('right_arm', 1000, 'sharp', database=self.db)
 
         self.db.cursor.execute('SELECT right_arm FROM injuries WHERE character_id = %s', (character.id,))
         result = self.db.cursor.fetchall()[0][0]
@@ -43,9 +37,9 @@ class TestInjuries(unittest.TestCase):
 
     def test_is_injured(self):
         character: Character = self.game.character_table[1]
-        character.injure('torso', 1000, 'sharp')
+        character.injure('torso', 1000, 'sharp', database=self.db)
 
-        result = character.is_injured('torso')
+        result = character.is_injured('torso', database=self.db)
 
         self.assertEqual(True, result)
 

@@ -1,21 +1,9 @@
 import unittest
 from engine.database import Database
 from engine.engine import Game
+from tests._base_unittest import DatabaseTestcase
 
-class TestInit(unittest.TestCase):
-    def setUp(self):
-        self.db = Database()
-        self.db.init_database()
-
-    def tearDown(self):
-        self.db.cursor.execute("""
-            DELETE FROM items;
-            DELETE FROM injuries;
-            DELETE FROM talents;
-            DELETE FROM characters;
-        """)
-        self.db.conn.commit()
-
+class TestInit(DatabaseTestcase):
     def test_characters_after_init(self):
         query = """
         INSERT INTO characters(id, name, strength, dexterity, toughness, perseverance)

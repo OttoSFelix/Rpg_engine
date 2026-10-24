@@ -110,9 +110,9 @@ class Character:
         elif bodypart == 'left_leg':
             self.left_leg = max(0, self.left_leg - damage)
 
-    def move(self, amount: int, near_enemy: bool = False):
+    def move(self, amount: int, database: Database, near_enemy: bool = False):
         if amount == 3:
-            weight_modifier = self.get_weight_modifier(self.get_weight_statistic(self.get_inventory_weight()))
+            weight_modifier = self.get_weight_modifier(self.get_weight_statistic(self.get_inventory_weight(database=database)))
             if self.stamina - weight_modifier < 0:
                 return False
             self.movement_stat = amount

@@ -3,11 +3,14 @@ from unittest.mock import Mock
 from engine.engine import Game
 from engine.database import Database
 from engine.character import Character
+from tests._base_unittest import DatabaseTestcase
 
-class TestMechanics(unittest.TestCase):
+class TestMechanics(DatabaseTestcase):
     def setUp(self):
         self.db = Database()
         self.db.init_database()
+
+        self.addCleanup(self.clean_database)
 
         query = """
         INSERT INTO characters(id, name, strength, dexterity, toughness, perseverance, brilliance, senses, presence, sharpstrike, ravage, melee, special, stealth, hardware, ordnance, medical, health, head, torso, right_arm, left_arm, right_leg, left_leg, mental, movement_stat, stamina, cover, status)
@@ -29,39 +32,30 @@ class TestMechanics(unittest.TestCase):
         self.game = Game()
         self.game.initialize()
 
-    def tearDown(self):
-        self.db.cursor.execute("""
-            DELETE FROM items;
-            DELETE FROM injuries;
-            DELETE FROM talents;
-            DELETE FROM characters;
-        """)
-        self.db.conn.commit()
-
 
     def test_move(self):
         character: Character = self.game.character_table[1]
-        character.move(2)
+        character.move(2, database=self.db)
         self.assertEqual(character.movement_stat, 2)
 
     def test_stamina(self):
         character: Character = self.game.character_table[1]
         stamina_before = character.stamina
-        weight = character.get_inventory_weight()
+        weight = character.get_inventory_weight(database=self.db)
         weight_modifier = character.get_weight_modifier(character.get_weight_statistic(weight))
-        character.move(3)
+        character.move(3, database=self.db)
 
         self.assertEqual(character.stamina, stamina_before - weight_modifier)
 
     def test_get_inventory_weight(self):
         character: Character = self.game.character_table[1]
         
-        weight = character.get_inventory_weight()
+        weight = character.get_inventory_weight(database=self.db)
         self.assertEqual(weight, 35)
 
     def test_get_inventory_items(self):
         character: Character = self.game.character_table[1]
-        items = character.get_inventory_items()
+        items = character.get_inventory_items(database=self.db)
         
         correct = [
             ('921234y4', 1, 'test_item', 7),
@@ -97,14 +91,14 @@ class TestMechanics(unittest.TestCase):
 
     def test_get_weight_statistic(self):
         character: Character = self.game.character_table[1]
-        statistic = character.get_weight_statistic(character.get_inventory_weight())
+        statistic = character.get_weight_statistic(character.get_inventory_weight(database=self.db))
 
         self.assertEqual(statistic, 15)
 
     def test_delete_item(self):
         character: Character = self.game.character_table[1]
-        character.delete_item('fas3y4')
-        items = character.get_inventory_items()
+        character.delete_item('fas3y4', database=self.db)
+        items = character.get_inventory_items(database=self.db)
 
         correct = [
             ('921234y4', 1, 'test_item', 7),
@@ -122,8 +116,8 @@ class TestMechanics(unittest.TestCase):
         item.id = '839huj'
         item.name = 'test_item'
         item.weight = 3
-        character.add_item(item)
-        items = character.get_inventory_items()
+        character.add_item(item, database=self.db)
+        items = character.get_inventory_items(database=self.db)
 
         correct = [
             ('921234y4', 1, 'test_item', 7),
