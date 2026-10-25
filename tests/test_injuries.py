@@ -28,18 +28,17 @@ class TestInjuries(DatabaseTestcase):
 
     def test_injury_in_database(self):
         character: Character = self.game.character_table[1]
-        character.injure('right_arm', 1000, 'sharp', database=self.db)
+        character.injure('right_arm', 1000, 'sharp')
 
-        self.db.cursor.execute('SELECT right_arm FROM injuries WHERE character_id = %s', (character.id,))
-        result = self.db.cursor.fetchall()[0][0]
+        result = character.injury['right_arm'][0]
 
         self.assertEqual(result, 'fracture')
 
     def test_is_injured(self):
         character: Character = self.game.character_table[1]
-        character.injure('torso', 1000, 'sharp', database=self.db)
+        character.injure('torso', 1000, 'sharp')
 
-        result = character.is_injured('torso', database=self.db)
+        result = character.is_injured('torso')
 
         self.assertEqual(True, result)
 

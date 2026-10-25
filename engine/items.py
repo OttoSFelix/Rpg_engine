@@ -16,17 +16,17 @@ class Item:
 
     def __init__(self):
         self.item_table = {
-            "MXR-17": self.mxr_17(),
-            "SP-R 208": self.spr_208(),
-            "CODA-9": self.coda_9(),
-            "test_item": self.test_item(),
+            "MXR-17": self.mxr_17,
+            "SP-R 208": self.spr_208,
+            "CODA-9": self.coda_9,
+            "test_item": self.test_item,
 
         }
 
         self.difficulty_choise_table = {1: [], 2: [], 3: [], 4: [], 5: []}
 
     def load_item(self, name: str, id: str):
-        item = self.item_table[name]
+        item = self.item_table[name]()
         item.item_id = id
         return item
 

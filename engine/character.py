@@ -1,4 +1,3 @@
-from engine.database import Database
 from engine.dice import Dice
 DICE = Dice()
 
@@ -92,6 +91,10 @@ class Character:
         self.left_leg_cover = left_leg_cover
         self.status = status
 
+        self.injury = {'head': [], 'torso': [], 'right_arm': [], 'left_arm': [], 'right_leg': [], 'left_leg': []}
+
+        self.inventory = []
+
         self.held_weapon = None
 
     def attack(self, target: 'Character', bodypart: str):
@@ -142,9 +145,9 @@ class Character:
         else:
             raise KeyError(f'Invalid bodypart in bodypart_damage: {bodypart}')
 
-    def move(self, amount: int, database: Database, near_enemy: bool = False):
+    def move(self, amount: int, near_enemy: bool = False):
         if amount == 3:
-            weight_modifier = self.get_weight_modifier(self.get_weight_statistic(self.get_inventory_weight(database=database)))
+            weight_modifier = self.get_weight_modifier(self.get_weight_statistic(self.get_inventory_weight()))
             if self.stamina - weight_modifier < 0:
                 return False
             self.movement_stat = amount
@@ -156,36 +159,21 @@ class Character:
     def medical_utility(self, item):
         item.use(self)
 
-    def get_inventory_weight(self, database: Database):
-        query = """
-        SELECT SUM(weight) FROM items WHERE character_id = %s;
-        """
-        database.cursor.execute(query, (self.id,))
-        result = int(database.cursor.fetchall()[0][0])
-        database.conn.commit()
+    def get_inventory_weight(self):
+        total = 0
 
-        return result
+        for item in self.inventory:
+            total += item.weight
 
-    def get_inventory_items(self, database: Database):
-        query = """
-        SELECT * FROM items WHERE character_id = %s;
-        """
-        database.cursor.execute(query, (self.id,))
-        result = database.cursor.fetchall()
-        database.conn.commit()
+        return total
 
-        return result
+    def get_inventory_items(self):
+        return self.inventory[:]
 
-    def is_in_inventory(self, item: 'str', database: Database):
-        query = """
-        SELECT * FROM items WHERE character id = %s AND name = %s;
-        """
-        database.cursor.execute(query, (self.id, item))
-        result = database.cursor.fetchall()
-        database.conn.commit()
-
-        if len(result) > 0:
-            return True
+    def is_in_inventory(self, id: 'str'):
+        for item in self.inventory:
+            if item.item_id == id:
+                return True
         return False
 
     def equip_weapon(self, weapon):
@@ -213,41 +201,27 @@ class Character:
     def get_weight_statistic(self, weight: int):
         return (self.strength * 10) - weight
 
-    def delete_item(self, item: str, database: Database):
-        query = """
-        DELETE FROM items WHERE item_id = %s;
-        """
-        database.cursor.execute(query, (item.id,))
-        database.conn.commit()
+    def delete_item(self, id: str):
+        pointer = 0
+        for item in self.inventory:
+            if item.item_id == id:
+                self.inventory.pop(pointer)
+                return
+            pointer += 1
 
-    def add_item(self, item, database: Database):
-        query = """
-        INSERT INTO items(item_id, character_id, name, weight)
-        VALUES (%s, %s, %s, %s)
-        """
-        database.cursor.execute(query, (item.id, self.id, item.name, item.weight))
-        database.conn.commit()
+    def add_item(self, item):
+        self.inventory.append(item)
 
-    def is_injured(self, bodypart: str, database: Database):
-        query = f"""
-        SELECT {bodypart} FROM injuries WHERE character_id = %s;
-        """
-        database.cursor.execute(query, (self.id,))
-        result = database.cursor.fetchall()
-        database.conn.commit()
-        if len(result) == 0 or result[0][0] == 'None':
+    def is_injured(self, bodypart: str):
+        if len(self.injury[bodypart]) == 0:
             return False
         return True
 
-    def injure(self, bodypart: str, damage: int, damage_type: str, database: Database):
-        query = f"""
-        INSERT INTO injuries(character_id, {bodypart})
-        VALUES(%s, %s);
-        """
+    def injure(self, bodypart: str, damage: int, damage_type: str):
         throw = DICE.throw('1d12')[0] + damage - self.stat_modifier(self.toughness) 
         injury = self.injury_table(throw, bodypart, damage_type)
-        database.cursor.execute(query, (self.id, injury))
-        database.conn.commit()
+
+        self.injury[bodypart].append(injury)
 
     def injury_table(self, throw: int, bodypart: str, damage_type: str):
         table = {
