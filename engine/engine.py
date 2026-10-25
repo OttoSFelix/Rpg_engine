@@ -124,14 +124,14 @@ class Game:
             values['id'] = id
             self.db.save_character(values)
 
-        for character_id, item_list in self.inventory_table.items():
-            for item in item_list:
-                values = {}
-                values['item_id'] = item.item_id
-                values['character_id'] = character_id
-                values['name'] = item.name
-                values['weight'] = item.weight
-                self.db.save_item(values)
+            for item in character.inventory:
+                item_values = {}
+                item_values['item_id'] = item.item_id
+                item_values['character_id'] = id
+                item_values['name'] = item.name
+                item_values['weight'] = item.weight
+                self.db.save_item(item_values)
+
 
 
 
