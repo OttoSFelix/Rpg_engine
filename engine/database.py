@@ -46,7 +46,13 @@ class Database:
             mental INTEGER,
             movement_stat INTEGER,
             stamina INTEGER,
-            cover INTEGER,
+            full_cover INTEGER,
+            head_cover INTEGER,
+            torso_cover INTEGER,
+            right_arm_cover INTEGER,
+            left_arm_cover INTEGER,
+            right_leg_cover INTEGER,
+            left_leg_cover INTEGER,
             status VARCHAR(50)
         );
         """)
@@ -76,6 +82,16 @@ class Database:
         );
         """)
 
+        self.conn.commit()
+
+    def purge_database(self):
+        self.cursor.execute("""
+        DROP TABLE IF EXISTS characters, items, injuries, talents CASCADE
+        """)
+        self.conn.commit()
+
+    def reset_database(self):
+        self.cursor.execute("TRUNCATE TABLE characters, items, injuries, talents RESTART IDENTITY CASCADE")
         self.conn.commit()
 
     def test_database(self):
@@ -109,4 +125,143 @@ class Database:
         return results
 
     def save_character(self, values):
-        pass
+        query = """
+            INSERT INTO characters (
+                name,
+                strength,
+                dexterity,
+                toughness,
+                perseverance,
+                brilliance,
+                senses,
+                presence,
+                sharpstrike,
+                ravage,
+                melee,
+                special,
+                stealth,
+                hardware,
+                ordnance,
+                medical,
+                health,
+                head,
+                torso,
+                right_arm,
+                left_arm,
+                right_leg,
+                left_leg,
+                mental,
+                movement_stat,
+                stamina,
+                full_cover,
+                head_cover,
+                torso_cover,
+                right_arm_cover,
+                left_arm_cover,
+                right_leg_cover,
+                left_leg_cover,
+                status
+                )
+            VALUES (
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s
+            )
+            """
+
+        self.cursor.execute(query, (
+            values['name'],
+            values['strength'],
+            values['dexterity'],
+            values['toughness'],
+            values['perseverance'],
+            values['brilliance'],
+            values['senses'],
+            values['presence'],
+            values['sharpstrike'],
+            values['ravage'],
+            values['melee'],
+            values['special'],
+            values['stealth'],
+            values['hardware'],
+            values['ordnance'],
+            values['medical'],
+            values['health'],
+            values['head'],
+            values['torso'],
+            values['right_arm'],
+            values['left_arm'],
+            values['right_leg'],
+            values['left_leg'],
+            values['mental'],
+            values['movement_stat'],
+            values['stamina'],
+            values['full_cover'],
+            values['head_cover'],
+            values['torso_cover'],
+            values['right_arm_cover'],
+            values['left_arm_cover'],
+            values['right_leg_cover'],
+            values['left_leg_cover'],
+            values['status'],
+        ))
+        self.conn.commit()
+
+    def save_item(self, values):
+        query = """
+        INSERT INTO items (
+            item_id,
+            character_id,
+            name,
+            weight
+        )
+        VALUES (
+            %s,
+            %s,
+            %s,
+            %s
+        )
+        """
+
+        self.cursor.execute(query, (values['item_id'], values['character_id'], values['name'], values['weight']))
+        self.conn.commit()
+
+    def clear_characters(self):
+        self.cursor.execute("TRUNCATE TABLE characters RESTART IDENTITY CASCADE")
+        self.conn.commit()
+
+    def clear_items(self):
+        self.cursor.execute("TRUNCATE TABLE items RESTART IDENTITY")
+        self.conn.commit()
+

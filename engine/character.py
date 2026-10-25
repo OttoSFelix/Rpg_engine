@@ -2,6 +2,21 @@ from engine.database import Database
 from engine.dice import Dice
 DICE = Dice()
 
+def get_random_bodypart() -> str:
+        throw = DICE.throw('1d12')[0]
+
+        if throw == 12:
+            return 'head'
+        if throw >= 10:
+            return 'left_arm'
+        if throw >= 8:
+            return 'right_arm'
+        if throw >= 5:
+            return 'torso'
+        if throw >= 3:
+            return 'left_leg'
+        return 'right_leg'
+
 class Character:
     def __init__(
         self, 
@@ -32,7 +47,13 @@ class Character:
         mental: int,
         movement_stat: int,
         stamina: int,
-        cover: int,
+        full_cover: int,
+        head_cover: int,
+        torso_cover: int,
+        right_arm_cover: int,
+        left_arm_cover: int,
+        right_leg_cover: int,
+        left_leg_cover: int,
         status: int):
 
         self.id = id
@@ -62,7 +83,13 @@ class Character:
         self.mental = mental
         self.movement_stat = movement_stat
         self.stamina = stamina
-        self.cover = cover
+        self.full_cover = full_cover
+        self.head_cover = head_cover
+        self.torso_cover = torso_cover
+        self.right_arm_cover = right_arm_cover
+        self.left_arm_cover = left_arm_cover
+        self.right_leg_cover = right_leg_cover
+        self.left_leg_cover = left_leg_cover
         self.status = status
 
         self.held_weapon = None
@@ -88,11 +115,14 @@ class Character:
 
         total_damage = 0
         for r in rolls:
-            total_damage += self.held_weapon.hit_table(r, target.cover)
+            damage = self.held_weapon.hit_table(r, target, bodypart)
+            if damage[0] <= 0:
+                continue
+            total_damage += damage[0]
+            target.bodypart_damage(damage[1], damage[0])
 
         if total_damage > 0:
             target.health -= total_damage
-            target.bodypart_damage(bodypart, total_damage)
             return True
         return False
 
@@ -109,6 +139,8 @@ class Character:
             self.right_leg = max(0, self.right_leg - damage)
         elif bodypart == 'left_leg':
             self.left_leg = max(0, self.left_leg - damage)
+        else:
+            raise KeyError(f'Invalid bodypart in bodypart_damage: {bodypart}')
 
     def move(self, amount: int, database: Database, near_enemy: bool = False):
         if amount == 3:
@@ -121,7 +153,7 @@ class Character:
         self.movement_stat = amount
         return True
 
-    def mecial_utility(self, item):
+    def medical_utility(self, item):
         item.use(self)
 
     def get_inventory_weight(self, database: Database):
@@ -354,6 +386,30 @@ class Character:
             "mental": self.mental,
             "movement_stat": self.movement_stat,
             "stamina": self.stamina,
-            "cover": self.cover,
+            "full_cover": self.full_cover,
+            "head_cover": self.head_cover,
+            "torso_cover": self.torso_cover,
+            "right_arm_cover": self.right_arm_cover,
+            "left_arm_cover": self.left_arm_cover,
+            "right_leg_cover": self.right_leg_cover,
+            "left_leg_cover": self.left_leg_cover,
             "status": self.status,
         }
+        return values
+
+    def get_bodypart_cover(self, bodypart: str) -> str:
+        if bodypart == 'head':
+            return self.head_cover
+        if bodypart == 'left_arm':
+            return self.left_arm_cover
+        if bodypart == 'right_arm':
+            return self.right_arm_cover
+        if bodypart == 'torso':
+            return self.torso_cover
+        if bodypart == 'left_leg':
+            return self.left_leg_cover
+        if bodypart == 'right_leg':
+            return self.right_leg_cover
+
+        return ValueError(f"Invalid bodypart in get_bodypart_cover: {bodypart}")
+

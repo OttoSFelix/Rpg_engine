@@ -12,8 +12,8 @@ class TestInjuries(DatabaseTestcase):
         self.addCleanup(self.clean_database)
 
         query = """
-        INSERT INTO characters(id, name, strength, dexterity, toughness, perseverance, brilliance, senses, presence, sharpstrike, ravage, melee, special, stealth, hardware, ordnance, medical, health, head, torso, right_arm, left_arm, right_leg, left_leg, mental, movement_stat, stamina, cover, status)
-        VALUES(1, 'TestDummy', 5, 5, 4, 6, 7, 8, 3, 6, 3, 4, 6, 7, 2, 7, 6, 5, 1, 3, 0, 2, 2, 2, 0, 0, 5, 0, 'None')
+        INSERT INTO characters(id, name, strength, dexterity, toughness, perseverance, brilliance, senses, presence, sharpstrike, ravage, melee, special, stealth, hardware, ordnance, medical, health, head, torso, right_arm, left_arm, right_leg, left_leg, mental, movement_stat, stamina, full_cover, head_cover, torso_cover, right_arm_cover, left_arm_cover, right_leg_cover, left_leg_cover, status)
+        VALUES(1, 'TestDummy', 5, 5, 4, 6, 7, 8, 3, 6, 3, 4, 6, 7, 2, 7, 6, 5, 1, 3, 0, 2, 2, 2, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 'None')
         """
         self.db.cursor.execute(query)
         self.db.cursor.execute("INSERT INTO items(item_id, character_id, name, weight) VALUES('921234y4', 1, 'test_item', 7)")

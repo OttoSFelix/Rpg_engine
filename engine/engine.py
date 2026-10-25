@@ -2,6 +2,7 @@ from engine.character import Character
 from engine.items import Item
 from engine.generator import Generator
 from engine.database import Database
+from time import sleep
 
 
 class Game:
@@ -9,6 +10,7 @@ class Game:
         self.round_table = []
         self.character_table = {}
         self.item_table = {}
+        self.inventory_table = {}
         self.db = Database()
         self.generator = Generator()
         self.character_count = 0
@@ -47,14 +49,23 @@ class Game:
                 mental=character[24],
                 movement_stat=character[25],
                 stamina=character[26],
-                cover=character[27],
-                status=character[28]
+                full_cover=character[27],
+                head_cover=character[28],
+                torso_cover=character[29],
+                right_arm_cover=character[30],
+                left_arm_cover=character[31],
+                right_leg_cover=character[32],
+                left_leg_cover=character[33],
+                status=character[34]
             )
 
         gen_item = Item()
         for item in self.db.get_items():
             id = item[0]
             self.item_table[id] = gen_item.item_table[item[2]]
+            if self.inventory_table.get(item[1], None) == None:
+                self.inventory_table[item[1]] = []
+            self.inventory_table[item[1]].append(id)
 
     def add_character(self, values: dict):
         id = self.character_count + 1
@@ -87,10 +98,17 @@ class Game:
             mental=0,
             movement_stat=0,
             stamina=values['dexterity'],
-            cover=0,
+            full_cover=0,
+            head_cover=0,
+            torso_cover=0,
+            right_arm_cover=0,
+            left_arm_cover=0,
+            right_leg_cover=0,
+            left_leg_cover=0,
             status='None',
         )
         self.character_table[id] = character
+        self.inventory_table[id] = []
 
         return id
 
@@ -101,9 +119,23 @@ class Game:
         return values
         
     def save(self):
-        for character in self.character_table.values():
+        self.db.clear_items()
+        self.db.clear_characters()
+
+        for id, character in self.character_table.items():
             values = character.get_character_attributes()
+            values['id'] = id
             self.db.save_character(values)
+
+        for character_id, item_list in self.inventory_table.items():
+            for item in item_list:
+                values = {}
+                values['item_id'] = item.item_id
+                values['character_id'] = character_id
+                values['name'] = item.name
+                values['weight'] = item.weight
+                self.db.save_item(values)
+
 
 
 
@@ -111,4 +143,5 @@ class Game:
 
 if __name__ == '__main__':
     game = Game()
-    game.save()
+    gen = Generator()
+    

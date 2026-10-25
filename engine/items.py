@@ -1,4 +1,6 @@
+from unicodedata import name
 from engine.dice import Dice
+from engine.character import Character, get_random_bodypart
 import secrets
 
 DICE = Dice()
@@ -21,7 +23,7 @@ class Item:
 
         }
 
-        self.choise_table = {1: [], 2: [], 3: []}
+        self.difficulty_choise_table = {1: [], 2: [], 3: [], 4: [], 5: []}
 
     def load_item(self, name: str, id: str):
         item = self.item_table[name]
@@ -29,8 +31,9 @@ class Item:
         return item
 
     def mxr_17(self):
-        id = secrets.token_hex(16)
+        id = secrets.token_hex(8)
         return Weapon(
+            name='MXR-17',
             item_id=id,
             type='ravage',
             weight=10,
@@ -46,8 +49,9 @@ class Item:
         )
 
     def spr_208(self):
-        id = secrets.token_hex(16)
+        id = secrets.token_hex(8)
         return Weapon(
+            name='SP-R 208',
             item_id=id,
             type='sharpstrike',
             weight=10,
@@ -63,8 +67,9 @@ class Item:
         )
 
     def coda_9(self):
-        id = secrets.token_hex(16)
+        id = secrets.token_hex(8)
         return Weapon(
+            name='CODA-9',
             item_id=id,
             type='sharpstrike',
             weight=5,
@@ -82,6 +87,7 @@ class Item:
 
     def test_item(self):
         return Weapon(
+            'test_item',
             '1',
             'ravage',
             7,
@@ -98,7 +104,8 @@ class Item:
 
 class Weapon:
     def __init__(
-        self, 
+        self,
+        name: str,
         item_id: str, 
         type: str, 
         weight: int, 
@@ -121,6 +128,7 @@ class Weapon:
         self.range = range
         self.bullet_amount = bullet_amount
         self.item_id = item_id
+        self.name = name
         
         self.magazine_bullets = 0
         self.miss_threshold = miss_threshold
@@ -137,12 +145,16 @@ class Weapon:
             self.magazine_bullets -= 1
         return result
 
-    def hit_table(self, throw: int, cover: int):
+    def hit_table(self, throw: int, target: Character, bodypart: str) -> tuple:
         if throw <= self.miss_threshold:
-            return 0
+            return 0, 'None'
         if throw >= self.hit_threshold and throw < self.precise_threshold:
-            if self.power >= cover:
-                return self.damage
-        return self.damage
+            random_bodypart = get_random_bodypart()
+            if self.power >= target.get_bodypart_cover(random_bodypart):
+                return self.damage, random_bodypart
+            else:
+                return 0, random_bodypart
+
+        return self.damage, bodypart
 
 
