@@ -10,7 +10,6 @@ class Game:
         self.round_table = []
         self.character_table = {}
         self.item_table = {}
-        self.inventory_table = {}
         self.db = Database()
         self.generator = Generator()
         self.character_count = 0
@@ -61,11 +60,10 @@ class Game:
 
         gen_item = Item()
         for item in self.db.get_items():
-            id = item[0]
-            self.item_table[id] = gen_item.item_table[item[2]]
-            if self.inventory_table.get(item[1], None) == None:
-                self.inventory_table[item[1]] = []
-            self.inventory_table[item[1]].append(id)
+            item_object = gen_item.load_item(item[2], item[0])
+            self.item_table[item[0]] = item_object
+            character_id = item[1]
+            self.character_table[character_id].inventory.append(item_object)
 
     def add_character(self, values: dict):
         id = self.character_count + 1
@@ -108,7 +106,6 @@ class Game:
             status='None',
         )
         self.character_table[id] = character
-        self.inventory_table[id] = []
 
         return id
 

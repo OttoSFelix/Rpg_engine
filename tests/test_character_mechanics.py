@@ -35,34 +35,34 @@ class TestMechanics(DatabaseTestcase):
 
     def test_move(self):
         character: Character = self.game.character_table[1]
-        character.move(2, database=self.db)
+        character.move(2)
         self.assertEqual(character.movement_stat, 2)
 
     def test_stamina(self):
         character: Character = self.game.character_table[1]
         stamina_before = character.stamina
-        weight = character.get_inventory_weight(database=self.db)
+        weight = character.get_inventory_weight()
         weight_modifier = character.get_weight_modifier(character.get_weight_statistic(weight))
-        character.move(3, database=self.db)
+        character.move(3)
 
         self.assertEqual(character.stamina, stamina_before - weight_modifier)
 
     def test_get_inventory_weight(self):
         character: Character = self.game.character_table[1]
         
-        weight = character.get_inventory_weight(database=self.db)
+        weight = character.get_inventory_weight()
         self.assertEqual(weight, 35)
 
     def test_get_inventory_items(self):
         character: Character = self.game.character_table[1]
-        items = character.get_inventory_items(database=self.db)
-        
+        items = [item.item_id for item in character.get_inventory_items()]
+
         correct = [
-            ('921234y4', 1, 'test_item', 7),
-            ('8283y4', 1, 'test_item', 7),
-            ('fas3y4', 1, 'test_item', 7),
-            ('fhiuwe', 1, 'test_item', 7),
-            ('089w7efygri', 1, 'test_item', 7)
+            '921234y4',
+            '8283y4',
+            'fas3y4',
+            'fhiuwe',
+            '089w7efygri',
         ]
         
         self.assertEqual(correct, items)
@@ -91,42 +91,43 @@ class TestMechanics(DatabaseTestcase):
 
     def test_get_weight_statistic(self):
         character: Character = self.game.character_table[1]
-        statistic = character.get_weight_statistic(character.get_inventory_weight(database=self.db))
+        statistic = character.get_weight_statistic(character.get_inventory_weight())
 
         self.assertEqual(statistic, 15)
 
     def test_delete_item(self):
         character: Character = self.game.character_table[1]
-        character.delete_item('fas3y4', database=self.db)
-        items = character.get_inventory_items(database=self.db)
+        character.delete_item('fas3y4')
+        items = [item.item_id for item in character.get_inventory_items()]
 
         correct = [
-            ('921234y4', 1, 'test_item', 7),
-            ('8283y4', 1, 'test_item', 7),
-            ('fhiuwe', 1, 'test_item', 7),
-            ('089w7efygri', 1, 'test_item', 7)
+            '921234y4',
+            '8283y4',
+            'fhiuwe',
+            '089w7efygri',
         ]
 
         self.assertEqual(correct, items)
 
-    def test_delete_item(self):
+    def test_add_item(self):
         character: Character = self.game.character_table[1]
         
         item = Mock()
-        item.id = '839huj'
+        item.item_id = '839huj'
         item.name = 'test_item'
         item.weight = 3
-        character.add_item(item, database=self.db)
-        items = character.get_inventory_items(database=self.db)
+        character.add_item(item)
+        items = [i.item_id for i in character.get_inventory_items()]
 
         correct = [
-            ('921234y4', 1, 'test_item', 7),
-            ('8283y4', 1, 'test_item', 7),
-            ('fas3y4', 1, 'test_item', 7),
-            ('fhiuwe', 1, 'test_item', 7),
-            ('089w7efygri', 1, 'test_item', 7),
-            ('839huj', 1, 'test_item', 3)
+            '921234y4',
+            '8283y4',
+            'fas3y4',
+            'fhiuwe',
+            '089w7efygri',
+            '839huj',
         ]
+
 
         self.assertEqual(correct, items)
 

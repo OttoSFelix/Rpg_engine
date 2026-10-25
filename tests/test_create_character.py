@@ -1,5 +1,4 @@
 import unittest
-from engine.database import Database
 from engine.engine import Game
 from tests._base_unittest import DatabaseTestcase
 
