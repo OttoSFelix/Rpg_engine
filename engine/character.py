@@ -91,7 +91,7 @@ class Character:
         self.left_leg_cover = left_leg_cover
         self.status = status
 
-        self.injury = {'head': [], 'torso': [], 'right_arm': [], 'left_arm': [], 'right_leg': [], 'left_leg': []}
+        self.injury = {'head': None, 'torso': None, 'right_arm': None, 'left_arm': None, 'right_leg': None, 'left_leg': None, 'general': []}
 
         self.inventory = []
 
@@ -113,6 +113,8 @@ class Character:
 
         modifier -= self.movement_stat
         modifier -= target.movement_stat
+
+        modifier -= self.injury_attack_modifier()
 
         rolls = self.held_weapon.attack(modifier)
 
@@ -143,9 +145,24 @@ class Character:
         elif bodypart == 'left_leg':
             self.left_leg = max(0, self.left_leg - damage)
         else:
-            raise KeyError(f'Invalid bodypart in bodypart_damage: {bodypart}')
+            raise KeyError(f'Invalid bodypart in Character.bodypart_damage: {bodypart}')
 
     def move(self, amount: int, near_enemy: bool = False):
+        for injury in self.injury['general']:
+            if type(injury) == str:
+                if injury == 'blind':
+                    if amount > 2:
+                        return False
+                    self.movement_stat = amount
+                    return True
+
+        if self.injury['right_leg'] == 'fracture' or self.injury["left_leg"] == 'fracture' \
+        or self.injury['right_leg'] == 'impact_stun' or self.injury['left_leg'] == 'impact_stun':
+            if amount > 1:
+                return False
+            self.movement_stat = amount 
+            return True
+
         if amount == 3:
             weight_modifier = self.get_weight_modifier(self.get_weight_statistic(self.get_inventory_weight()))
             if self.stamina - weight_modifier < 0:
@@ -213,15 +230,18 @@ class Character:
         self.inventory.append(item)
 
     def is_injured(self, bodypart: str):
-        if len(self.injury[bodypart]) == 0:
-            return False
-        return True
+        if self.injury[bodypart] != None:
+            return True
+        return False
 
     def injure(self, bodypart: str, damage: int, damage_type: str):
         throw = DICE.throw('1d12')[0] + damage - self.stat_modifier(self.toughness) 
         injury = self.injury_table(throw, bodypart, damage_type)
 
-        self.injury[bodypart].append(injury)
+        if bodypart == 'general':
+            self.injury[bodypart].append(injury)
+        else:
+            self.injury[bodypart] = injury
 
     def injury_table(self, throw: int, bodypart: str, damage_type: str):
         table = {
@@ -241,7 +261,7 @@ class Character:
                 'sharp': {
                     4: 'None',
                     10: 'wound',
-                    1000: 'fracture'
+                    float('inf'): 'fracture'
                 },
                 'blunt': {
                     4: 'None',
@@ -385,5 +405,68 @@ class Character:
         if bodypart == 'right_leg':
             return self.right_leg_cover
 
-        return ValueError(f"Invalid bodypart in get_bodypart_cover: {bodypart}")
+        return ValueError(f"Invalid bodypart in Character.get_bodypart_cover: {bodypart}")
 
+    def injury_attack_modifier(self):
+        # ∀total_modifier >= 0
+        total_modifier = 0
+        if self.held_weapon.two_handed:
+            if self.injury['right_arm'] == 'fracture':
+                total_modifier += 6
+            if self.injury['left_arm'] == 'fracture':
+                total_modifier += 6
+            if self.injury['right_arm'] == 'wound':
+                total_modifier += 1
+            if self.injury['left_arm'] == 'wound':
+                total_modifier += 1
+            if self.injury['right_arm'] == 'dislocation':
+                total_modifier += 3
+            if self.injury['left_arm'] == 'dislocation':
+                total_modifier += 3
+            if self.injury['right_arm'] == 'impact_stun':
+                total_modifier += 4
+            if self.injury['left_arm'] == 'impact_stun':
+                total_modifier += 4
+        else:
+            total_modifier += min(self.injury_modifier_value(self.injury['right_arm']), self.injury_modifier_value(self.injury['left_arm']))
+
+        if self.injury['torso'] == 'fracture':
+            total_modifier += 3
+        if self.injury['torso'] == 'wound':
+            total_modifier += 1
+        if self.injury['torso'] == 'impact_stun':
+            total_modifier += 4
+        
+        if self.injury['head'] == 'fracture':
+            total_modifier += 6
+        if self.injury['head'] == 'wound':
+            total_modifier += 1
+        if self.injury['head'] == 'concussion':
+            total_modifier += 4
+
+        for injury in self.injury['general']:
+            if type(injury) == tuple:
+                if injury[0] == 'suffocating':
+                    total_modifier += injury[1]
+            else:
+                if injury == 'blind':
+                    total_modifier += 8 - self.stat_modifier(self.senses)
+
+
+        return total_modifier   
+
+    def injury_modifier_value(self, value: str):
+        if value == 'wound':
+            return 1
+        if value == 'fracture':
+            return 6
+        if value == 'dislocation':
+            return 3
+        if value == 'impact_stun':
+            return 4
+        return 0
+
+    def reset_injuries(self):
+        for part, injury in self.injury.items():
+            self.injury[part] = None
+        self.injury['general'] = []

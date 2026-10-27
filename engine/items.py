@@ -1,4 +1,3 @@
-from unicodedata import name
 from engine.dice import Dice
 from engine.character import Character, get_random_bodypart
 import secrets
@@ -81,7 +80,8 @@ class Item:
             bullet_amount=1,
             miss_threshold=Item.SHARPSTRIKE_MISS_THRESHOLD,
             hit_threshold=Item.SHARPSTRIKE_HIT_THRESHOLD,
-            precise_threshold=Item.SHARPSTRIKE_PRECISE_THRESHOLD
+            precise_threshold=Item.SHARPSTRIKE_PRECISE_THRESHOLD,
+            two_handed=False
         )
 
 
@@ -117,7 +117,8 @@ class Weapon:
         bullet_amount: int, 
         miss_threshold: int,
         hit_threshold: int,
-        precise_threshold: int):
+        precise_threshold: int,
+        two_handed: bool = True):
 
         self.type = type
         self.weight = weight
@@ -134,6 +135,8 @@ class Weapon:
         self.miss_threshold = miss_threshold
         self.hit_threshold = hit_threshold
         self.precise_threshold = precise_threshold
+        
+        self.two_handed = two_handed
 
     def attack(self, modifier: int):
         result = []
