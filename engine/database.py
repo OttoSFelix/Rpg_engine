@@ -124,6 +124,13 @@ class Database:
         self.conn.commit()
         return results
 
+    def get_injuries(self):
+        self.cursor.execute('SELECT * FROM injuries')
+        results = self.cursor.fetchall()
+        self.conn.commit()
+
+        return results
+
     def save_character(self, values):
         query = """
             INSERT INTO characters (
@@ -255,6 +262,31 @@ class Database:
         """
 
         self.cursor.execute(query, (values['item_id'], values['character_id'], values['name'], values['weight']))
+        self.conn.commit()
+
+    def save_injuries(self, values):
+        query = """
+        INSERT INTO injuries (
+            character_id,
+            head,
+            torso,
+            right_arm,
+            left_arm,
+            right_leg,
+            left_leg
+        )
+        VALUES (
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            %s
+        )
+        """
+
+        self.cursor.execute(query, (values['character_id'], values['head'], values['torso'], values['right_arm'], values['left_arm'], values['right_leg'], values['left_leg']))
         self.conn.commit()
 
     def clear_characters(self):

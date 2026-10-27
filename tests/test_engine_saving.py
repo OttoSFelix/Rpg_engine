@@ -53,5 +53,23 @@ class TestSave(DatabaseTestcase):
 
         self.assertEqual(correct, result)
 
+    def test_injuries_after_save(self):
+        game = Game()
+        gen = Generator()
 
+        traits = gen.generate_character_traits()
+        traits['id'] = 1
+        traits['name'] = 'TestDummy1'
+        game.add_character(traits)
 
+        game.character_table[1].injury['head'] = 'fracture'
+        game.character_table[1].injury['left_leg'] = 'internal_bleeding'
+
+        game.save()
+
+        data = self.db.get_injuries()
+
+        result = [data[0][1], data[0][2], data[0][6]]
+        correct = ['fracture', None, 'internal_bleeding']
+
+        self.assertEqual(correct, result)

@@ -53,7 +53,7 @@ class Character:
         left_arm_cover: int,
         right_leg_cover: int,
         left_leg_cover: int,
-        status: int):
+        status: str):
 
         self.id = id
         self.name = name
@@ -196,9 +196,16 @@ class Character:
     def equip_weapon(self, weapon):
         self.held_weapon = weapon
 
+    def get_mental(self):
+        mental = self.mental
+        if self.injury['head'] == 'concussion':
+            mental += 4
+
+        return mental
+
     def mental_check(self):
-        roll = DICE.throw('1d12')
-        if roll[0] > self.mental:
+        roll = DICE.throw('1d12')[0]
+        if roll + self.stat_modifier(self.perseverance) > self.get_mental():
             return True
         return False
 

@@ -78,3 +78,26 @@ class TestInit(DatabaseTestcase):
         inventory_size = len(game.character_table[1].inventory)
 
         self.assertEqual(5, inventory_size)
+
+    def test_character_injuries_after_init(self):
+        query = """
+        INSERT INTO characters(id, name, strength, dexterity, toughness, perseverance, brilliance, senses, presence, sharpstrike, ravage, melee, special, stealth, hardware, ordnance, medical)
+        VALUES(1, 'Testihahmo1', 5, 7, 3, 6, 5, 5, 5, 1, 1, 1, 1, 1, 1, 1, 1)
+        """
+        self.db.cursor.execute(query)
+        query = """
+        INSERT INTO injuries(character_id, head, torso, right_arm, left_arm, right_leg, left_leg)
+        VALUES (1, null, null, 'dislocation', 'impact_stun', 'wound', null)
+        """
+        self.db.cursor.execute(query)
+        self.db.conn.commit()
+
+        game = Game()
+        game.initialize()
+
+        injuries = game.character_table[1].injury
+
+        result = [injuries['head'], injuries['torso'], injuries['right_arm'], injuries['left_arm'], injuries['right_leg'], injuries['left_leg']]
+        correct = [None, None, 'dislocation', 'impact_stun', 'wound', None]
+
+        self.assertEqual(correct, result)
