@@ -1,5 +1,5 @@
 import random
-from engine.items import Item
+from engine.items import ItemPool
 from engine.dice import Dice
 DICE = Dice()
 class Generator:
@@ -8,7 +8,7 @@ class Generator:
         self.weapon_choise_table = {1: [], 2: [], 3: ["MXR-17", "SP-R 208", "CODA-9"], 4: [], 5: []}
         self.tool_choise_table = {1: [], 2: [], 3: ['lockpick'], 4: [], 5: []}
         self.utility_choise_table = {1: [], 2: [], 3: ['C4', 'flash', 'Hyposhot Injector', 'Hyposhot A', 'Hyposhot Z'], 4: [], 5: []}
-        self.item_gen = Item()
+        self.item_gen = ItemPool()
 
     def generate_character_traits(self, difficulty: int = 3) -> dict:
         personal_traits = [

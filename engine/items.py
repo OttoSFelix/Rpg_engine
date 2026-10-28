@@ -4,7 +4,7 @@ import secrets
 
 DICE = Dice()
 
-class Item:
+class ItemPool:
     RAVAGE_MISS_THRESHOLD = 7
     RAVAGE_HIT_THRESHOLD = 8
     RAVAGE_PRECISE_THRESHOLD = 12
@@ -28,6 +28,8 @@ class Item:
             "Hyposhot A": self.hyposhot_a,
             "Hyposhot Z": self.hyposhot_z,
             "lockpick": self.lockpick,
+            "ravage magazine": self.ravage_magazine,
+            "sharpstrike magazine": self.sharpstrike_magazine,
             "test_item": self.test_item,
 
         }        
@@ -50,10 +52,10 @@ class Item:
             damage_type='sharp',
             range=50,
             bullet_amount=None,
-            magazine_size=Item.RAVAGE_MAGAZINE_SIZE,
-            miss_threshold=Item.RAVAGE_MISS_THRESHOLD,
-            hit_threshold=Item.RAVAGE_HIT_THRESHOLD,
-            precise_threshold=Item.RAVAGE_PRECISE_THRESHOLD
+            magazine_size=ItemPool.RAVAGE_MAGAZINE_SIZE,
+            miss_threshold=ItemPool.RAVAGE_MISS_THRESHOLD,
+            hit_threshold=ItemPool.RAVAGE_HIT_THRESHOLD,
+            precise_threshold=ItemPool.RAVAGE_PRECISE_THRESHOLD
         )
 
     def spr_208(self) -> Weapon:
@@ -69,10 +71,10 @@ class Item:
             damage_type='sharp',
             range=100,
             bullet_amount=1,
-            magazine_size=Item.SHARPSTRIKE_MAGAZINE_SIZE,
-            miss_threshold=Item.SHARPSTRIKE_MISS_THRESHOLD,
-            hit_threshold=Item.SHARPSTRIKE_HIT_THRESHOLD,
-            precise_threshold=Item.SHARPSTRIKE_PRECISE_THRESHOLD
+            magazine_size=ItemPool.SHARPSTRIKE_MAGAZINE_SIZE,
+            miss_threshold=ItemPool.SHARPSTRIKE_MISS_THRESHOLD,
+            hit_threshold=ItemPool.SHARPSTRIKE_HIT_THRESHOLD,
+            precise_threshold=ItemPool.SHARPSTRIKE_PRECISE_THRESHOLD
         )
 
     def coda_9(self) -> Weapon:
@@ -88,21 +90,18 @@ class Item:
             damage_type='sharp',
             range=50,
             bullet_amount=1,
-            magazine_size=Item.SHARPSTRIKE_MAGAZINE_SIZE,
-            miss_threshold=Item.SHARPSTRIKE_MISS_THRESHOLD,
-            hit_threshold=Item.SHARPSTRIKE_HIT_THRESHOLD,
-            precise_threshold=Item.SHARPSTRIKE_PRECISE_THRESHOLD,
+            magazine_size=ItemPool.SHARPSTRIKE_MAGAZINE_SIZE,
+            miss_threshold=ItemPool.SHARPSTRIKE_MISS_THRESHOLD,
+            hit_threshold=ItemPool.SHARPSTRIKE_HIT_THRESHOLD,
+            precise_threshold=ItemPool.SHARPSTRIKE_PRECISE_THRESHOLD,
             two_handed=False
         )
 
     def hyposhot_injector(self) -> Stim:
         id = secrets.token_hex(8)
-        return Stim(
+        return Item(
             item_id=id,
             name='Hyposhot Injector',
-            effect={},
-            cure=[],
-            duration=0,
             weight=4
         )
 
@@ -163,6 +162,22 @@ class Item:
             success_threshold=8
         )
 
+    def ravage_magazine(self):
+        id = secrets.token_hex(8)
+        return Item(
+            item_id=id,
+            name='ravage magazine',
+            weight=3
+        )
+
+    def sharpstrike_magazine(self):
+        id = secrets.token_hex(8)
+        return Item(
+            item_id=id,
+            name='sharpstrike magazine',
+            weight=3
+        )
+
 
     def test_item(self) -> Weapon:
         return Weapon(
@@ -182,7 +197,19 @@ class Item:
             12
         )
 
-class Weapon:
+class Item:
+    def __init__(
+        self,
+        item_id: str,
+        name: str,
+        weight: int):
+
+        self.item_id = item_id
+        self.name = name
+        self.weight = weight
+
+
+class Weapon(Item):
     def __init__(
         self,
         name: str,
@@ -221,13 +248,13 @@ class Weapon:
         
         self.two_handed = two_handed
 
-    def attack(self, modifier: int):
+    def attack(self, modifier: int) -> list:
         result = []
         throws = DICE.throw(f'{self.bullet_amount}d12')
         for throw in throws:
-            result.append(throw + modifier + self.precision)
             if self.magazine_bullets - 1 < 0:
                 break
+            result.append(throw + modifier + self.precision)
             self.magazine_bullets -= 1
         return result
 
@@ -243,12 +270,27 @@ class Weapon:
 
         return self.damage, bodypart
 
+    def reload(self, character: Character) -> bool:
+        spare_mag = False
+        if self.type == 'ravage' or self.type == 'sharpstrike':
+            for item in character.inventory:
+                if item.name == f'{self.type} magazine':
+                    spare_mag = item
+                    break
+        
+        if spare_mag:
+            character.delete_item(spare_mag.item_id)
+            self.magazine_bullets = self.magazine_size
+            return True
+        return False
+
+
     def __str__(self):
         return self.name
 
 
 
-class Ordnance:
+class Ordnance(Item):
     def __init__(
         self,
         item_id: str,
@@ -271,7 +313,7 @@ class Ordnance:
         return self.name
 
 
-class Stim:
+class Stim(Item):
     def __init__(
         self,
         item_id: str,
@@ -290,7 +332,14 @@ class Stim:
         self.weight = weight
         self.wakes_up = wakes_up
 
-    def use(self, character: Character, bodypart: str = None):
+    def use(self, character: Character, bodypart: str = None) -> bool:
+        injector = False
+        for item in character.inventory:
+            if item.name == 'Hyposhot Injector':
+                injector = True
+        if not injector:
+            return False
+
         for stat, modifier in self.effect:
             character.statistic_lookup[stat] += modifier
 
@@ -305,6 +354,8 @@ class Stim:
             if character.injury['head'] == 'knocked_out':
                 character.cure('head')
 
+        return True
+
 
 
     def undo(self, character: Character):
@@ -315,7 +366,7 @@ class Stim:
         return self.name
 
 
-class Tool:
+class Tool(Item):
     def __init__(
         self,
         item_id: str,

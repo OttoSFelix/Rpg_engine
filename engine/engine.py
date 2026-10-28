@@ -1,5 +1,5 @@
 from engine.character import Character
-from engine.items import Item
+from engine.items import ItemPool
 from engine.generator import Generator
 from engine.database import Database
 import random
@@ -60,7 +60,7 @@ class Game:
 
             self.add_character(values)
 
-        gen_item = Item()
+        gen_item = ItemPool()
         for item in self.db.get_items():
             item_object = gen_item.load_item(item[2], item[0])
             self.item_table[item[0]] = item_object

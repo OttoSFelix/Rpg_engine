@@ -200,8 +200,10 @@ class Character:
         self.movement_stat = amount
         return True
 
-    def medical_utility(self, item) -> None:
-        item.use(self)
+    def medical_utility(self, item) -> bool:
+        if self.mental_check():
+            return item.use(self)
+        return False
 
     def get_inventory_weight(self) -> int:
         total = 0

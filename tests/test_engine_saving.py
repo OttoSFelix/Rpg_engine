@@ -1,6 +1,6 @@
 from engine.generator import Generator
 from engine.engine import Game
-from engine.items import Item
+from engine.items import ItemPool
 from tests._base_unittest import DatabaseTestcase
 
 class TestSave(DatabaseTestcase):
@@ -31,7 +31,7 @@ class TestSave(DatabaseTestcase):
     def test_items_after_save(self):
         game = Game()
         gen = Generator()
-        gen_item = Item()
+        gen_item = ItemPool()
 
         traits = gen.generate_character_traits()
         traits['id'] = 1
