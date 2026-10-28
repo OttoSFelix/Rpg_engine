@@ -37,7 +37,7 @@ class Item:
         item.item_id = id
         return item
 
-    def mxr_17(self):
+    def mxr_17(self) -> Weapon:
         id = secrets.token_hex(8)
         return Weapon(
             name='MXR-17',
@@ -56,7 +56,7 @@ class Item:
             precise_threshold=Item.RAVAGE_PRECISE_THRESHOLD
         )
 
-    def spr_208(self):
+    def spr_208(self) -> Weapon:
         id = secrets.token_hex(8)
         return Weapon(
             name='SP-R 208',
@@ -75,7 +75,7 @@ class Item:
             precise_threshold=Item.SHARPSTRIKE_PRECISE_THRESHOLD
         )
 
-    def coda_9(self):
+    def coda_9(self) -> Weapon:
         id = secrets.token_hex(8)
         return Weapon(
             name='CODA-9',
@@ -95,7 +95,7 @@ class Item:
             two_handed=False
         )
 
-    def hyposhot_injector(self):
+    def hyposhot_injector(self) -> Stim:
         id = secrets.token_hex(8)
         return Stim(
             item_id=id,
@@ -105,7 +105,7 @@ class Item:
             weight=4
         )
 
-    def hyposhot_a(self):
+    def hyposhot_a(self) -> Stim:
         id = secrets.token_hex(8)
         effect = {'senses': 1, 'mental': -2, 'toughness': 1, 'perseverance': 1}
         return Stim(
@@ -116,7 +116,7 @@ class Item:
             weight=2
         )
 
-    def hyposhot_z(self):
+    def hyposhot_z(self) -> Stim:
         id = secrets.token_hex(8)
         effect = {'mental': -2}
         return Stim(
@@ -127,7 +127,7 @@ class Item:
             weight=2
         )
 
-    def c4(self):
+    def c4(self) -> Ordnance:
         id = secrets.token_hex(8)
         return Ordnance(
             name='C4',
@@ -138,7 +138,7 @@ class Item:
             weight=4
         )
 
-    def flash(self):
+    def flash(self) -> Ordnance:
         id = secrets.token_hex(8)
         return Ordnance(
             name='flash',
@@ -150,7 +150,7 @@ class Item:
             effect='blind'
         )
 
-    def lockpick(self):
+    def lockpick(self) -> Tool:
         id = secrets.token_hex(8)
         return Tool(
             name='lockpick',
@@ -161,7 +161,7 @@ class Item:
         )
 
 
-    def test_item(self):
+    def test_item(self) -> Weapon:
         return Weapon(
             'test_item',
             '1',

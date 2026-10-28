@@ -103,7 +103,7 @@ class Character:
         'brilliance': self.brilliance, 'senses': self.senses, 'presence': self.presence, 'mental': self.mental, 'sharpstrike': self.sharpstrike, 'ravage': self.ravage, \
         'melee': self.melee, 'special': self.special, 'stealth': self.stealth, 'hardware': self.hardware, 'ordnance': self.ordnance, 'medical': self.medical}
 
-    def attack(self, target: 'Character', bodypart: str):
+    def attack(self, target: 'Character', bodypart: str) -> bool:
         if not self.mental_check():
             return False
 
@@ -137,7 +137,7 @@ class Character:
             return True
         return False
 
-    def bodypart_damage(self, bodypart: str, damage: int):
+    def bodypart_damage(self, bodypart: str, damage: int) -> None:
         if bodypart == 'head':
             self.head = max(0, self.head - damage)
         elif bodypart == 'torso':
@@ -153,7 +153,7 @@ class Character:
         else:
             raise KeyError(f'Invalid bodypart in Character.bodypart_damage: {bodypart}')
 
-    def move(self, amount: int, near_enemy: bool = False):
+    def move(self, amount: int, near_enemy: bool = False) -> bool:
         for injury in self.injury['general']:
             if type(injury) == str:
                 if injury == 'blind':
@@ -179,10 +179,10 @@ class Character:
         self.movement_stat = amount
         return True
 
-    def medical_utility(self, item):
+    def medical_utility(self, item) -> None:
         item.use(self)
 
-    def get_inventory_weight(self):
+    def get_inventory_weight(self) -> int:
         total = 0
 
         for item in self.inventory:
@@ -190,32 +190,32 @@ class Character:
 
         return total
 
-    def get_inventory_items(self):
+    def get_inventory_items(self) -> list:
         return self.inventory[:]
 
-    def is_in_inventory(self, id: 'str'):
+    def is_in_inventory(self, id: 'str') -> bool:
         for item in self.inventory:
             if item.item_id == id:
                 return True
         return False
 
-    def equip_weapon(self, weapon):
+    def equip_weapon(self, weapon) -> None:
         self.held_weapon = weapon
 
-    def get_mental(self):
+    def get_mental(self) -> int:
         mental = self.mental
         if self.injury['head'] == 'concussion':
             mental += 4
 
         return mental
 
-    def mental_check(self):
+    def mental_check(self) -> bool:
         roll = DICE.throw('1d12')[0]
         if roll + self.stat_modifier(self.perseverance) > self.get_mental():
             return True
         return False
 
-    def get_weight_modifier(self, weight_statistic: int):
+    def get_weight_modifier(self, weight_statistic: int) -> int:
         if weight_statistic <= 5:
             return 5
         elif weight_statistic <= 10:
@@ -228,10 +228,10 @@ class Character:
             return 1
         return 0
 
-    def get_weight_statistic(self, weight: int):
+    def get_weight_statistic(self, weight: int) -> int:
         return (self.strength * 10) - weight
 
-    def delete_item(self, id: str):
+    def delete_item(self, id: str) -> None:
         pointer = 0
         for item in self.inventory:
             if item.item_id == id:
@@ -239,15 +239,15 @@ class Character:
                 return
             pointer += 1
 
-    def add_item(self, item):
+    def add_item(self, item) -> None:
         self.inventory.append(item)
 
-    def is_injured(self, bodypart: str):
+    def is_injured(self, bodypart: str) -> bool:
         if self.injury[bodypart] != None:
             return True
         return False
 
-    def injure(self, bodypart: str, damage: int, damage_type: str):
+    def injure(self, bodypart: str, damage: int, damage_type: str) -> None:
         throw = DICE.throw('1d12')[0] + damage - self.stat_modifier(self.toughness) 
         injury = self.injury_table(throw, bodypart, damage_type)
 
@@ -256,7 +256,7 @@ class Character:
         else:
             self.injury[bodypart] = injury
 
-    def injury_table(self, throw: int, bodypart: str, damage_type: str):
+    def injury_table(self, throw: int, bodypart: str, damage_type: str) -> str:
         table = {
             'head': {
                 'sharp': {
@@ -348,7 +348,7 @@ class Character:
         except KeyError:
             print('Invalid bodypart or damage type in Character.injury_table')
 
-    def stat_modifier(self, value: int):
+    def stat_modifier(self, value: int) -> int:
         if value == 0:
             return -3
         elif value <= 2:
@@ -364,7 +364,7 @@ class Character:
         elif value >= 10:
             return 3
 
-    def get_character_attributes(self):
+    def get_character_attributes(self) -> dict:
         values = {
             "id": self.id,
             "name": self.name,
@@ -420,7 +420,7 @@ class Character:
 
         return ValueError(f"Invalid bodypart in Character.get_bodypart_cover: {bodypart}")
 
-    def injury_attack_modifier(self):
+    def injury_attack_modifier(self) -> int:
         # ∀total_modifier >= 0
         total_modifier = 0
         if self.held_weapon.two_handed:
@@ -468,7 +468,7 @@ class Character:
 
         return total_modifier   
 
-    def injury_modifier_value(self, value: str):
+    def injury_modifier_value(self, value: str) -> int:
         if value == 'wound':
             return 1
         if value == 'fracture':
@@ -479,7 +479,16 @@ class Character:
             return 4
         return 0
 
-    def reset_injuries(self):
+    def reset_injuries(self) -> int:
         for part, injury in self.injury.items():
             self.injury[part] = None
         self.injury['general'] = []
+
+    def __str__(self):
+        string = ""
+        string += self.name
+        string += f" [{self.id}] "
+        string += f"{self.health} HP "
+        if self.status != None and self.status != 'None':
+            string += f"({self.status})"
+        return string

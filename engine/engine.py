@@ -14,7 +14,7 @@ class Game:
         self.generator = Generator()
         self.character_count = 0
 
-    def initialize(self):
+    def initialize(self) -> None:
         self.db.init_database()
 
         for character in self.db.get_characters():
@@ -76,7 +76,7 @@ class Game:
             self.character_table[character_id].injury['right_leg'] = injury[5]
             self.character_table[character_id].injury['left_leg'] = injury[6]
 
-    def add_character(self, values: dict):
+    def add_character(self, values: dict) -> int:
         if values.get('id', None) != None:
             id = values['id']
         else:
@@ -125,18 +125,18 @@ class Game:
 
         return id
 
-    def flush_character_traits(self, difficulty: int = 3):
+    def flush_character_traits(self, difficulty: int = 3) -> dict:
         values = self.generator.generate_character_traits(difficulty)
 
         return values
 
-    def flush_character_inventory(self, character: Character, difficulty: int = 3):
+    def flush_character_inventory(self, character: Character, difficulty: int = 3) -> list:
         inventory = self.generator.generate_inventory_items(character, difficulty)
 
         return inventory
 
         
-    def save(self):
+    def save(self) -> None:
         self.db.clear_items()
         self.db.clear_characters()
 
@@ -185,6 +185,7 @@ if __name__ == '__main__':
 
     character.inventory = game.flush_character_inventory(character)
 
+    print(character)
     print('stats:')
     for stat, value in character.get_character_attributes().items():
         print(f'{stat}: {value}')

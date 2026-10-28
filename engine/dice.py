@@ -1,7 +1,7 @@
 import random
 
 class Dice:
-    def throw(self, dice: str):
+    def throw(self, dice: str) -> list:
         amount, sides = dice.split('d')
         result = []
         for d in range(int(amount)):
