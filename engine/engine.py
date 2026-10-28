@@ -2,7 +2,7 @@ from engine.character import Character
 from engine.items import Item
 from engine.generator import Generator
 from engine.database import Database
-from time import sleep
+import random
 
 
 class Game:
@@ -109,7 +109,7 @@ class Game:
             left_leg=values.get('left_leg', 2),
             mental=values.get('mental', 0),
             movement_stat=values.get('movement_stat', 0),
-            stamina=values['dexterity'],
+            stamina=values.get('dexterity', 5),
             full_cover=values.get('full_cover', 0),
             head_cover=values.get('head_cover', 0),
             torso_cover=values.get('torso_cover', 0),
@@ -121,13 +121,20 @@ class Game:
         )
         self.character_table[id] = character
 
+        self.character_inventory = values.get('inventory', [])
+
         return id
 
-    def flush_character_values(self, difficulty):
-        values = self.generator.generate_character_traits()
-        for trait, value in values.items():
-            values[trait] += (-3 + difficulty)
+    def flush_character_traits(self, difficulty: int = 3):
+        values = self.generator.generate_character_traits(difficulty)
+
         return values
+
+    def flush_character_inventory(self, character: Character, difficulty: int = 3):
+        inventory = self.generator.generate_inventory_items(character, difficulty)
+
+        return inventory
+
         
     def save(self):
         self.db.clear_items()
@@ -168,4 +175,21 @@ class Game:
 if __name__ == '__main__':
     game = Game()
     gen = Generator()
+    game.db.reset_database()
     
+    values = game.flush_character_traits()
+    values['name'] = 'Jackson'
+
+    id = game.add_character(values)
+    character: Character = game.character_table[id]
+
+    character.inventory = game.flush_character_inventory(character)
+
+    print('stats:')
+    for stat, value in character.get_character_attributes().items():
+        print(f'{stat}: {value}')
+    print()
+    print('inventory:')
+    for item in character.inventory:
+        print(item)
+    print(f'inventory weight: {character.get_inventory_weight()}')

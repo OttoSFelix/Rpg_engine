@@ -104,43 +104,76 @@ class TestCharacter(DatabaseTestcase):
 
     def test_flush_character_values_dif3(self):
         game = Game()
-        all_values = []
+        all_values = {n: None for n in range(100)}
         wrong_values = []
         for x in range(100):
-            values = game.flush_character_values(3)
-            for value in values.values():
-                all_values.append(value)
-        for value in all_values:
-            if value < 3 or value > 7:
-                wrong_values.append(value)
+            values = game.flush_character_traits(3)
+            all_values[x] = values
+
+        personal_traits = [
+            "strength",
+            "dexterity",
+            "toughness",
+            "perseverance",
+            "brilliance",
+            "senses",
+            "presence",
+        ]
+        for x in range(100):
+            for trait in personal_traits:
+                value = all_values[x][trait]
+                if value < 3 or value > 7:
+                    wrong_values.append(value)
 
         self.assertEqual(len(wrong_values), 0)
 
     def test_flush_character_values_dif1(self):
         game = Game()
-        all_values = []
+        all_values = {n: None for n in range(100)}
         wrong_values = []
         for x in range(100):
-            values = game.flush_character_values(1)
-            for value in values.values():
-                all_values.append(value)
-        for value in all_values:
-            if value < 1 or value > 5:
-                wrong_values.append(value)
+            values = game.flush_character_traits(1)
+            all_values[x] = values
+
+        personal_traits = [
+            "strength",
+            "dexterity",
+            "toughness",
+            "perseverance",
+            "brilliance",
+            "senses",
+            "presence",
+        ]
+        for x in range(100):
+            for trait in personal_traits:
+                value = all_values[x][trait]
+                if value < 1 or value > 5:
+                    wrong_values.append(value)
 
         self.assertEqual(len(wrong_values), 0)
 
     
     def test_flush_character_values_dif5(self):
         game = Game()
-        all_values = []
+        all_values = {n: None for n in range(100)}
         wrong_values = []
         for x in range(100):
-            values = game.flush_character_values(5)
-            for value in values.values():
-                all_values.append(value)
-        for value in all_values:
-            if value < 5 or value > 9:
-                wrong_values.append(value)
+            values = game.flush_character_traits(5)
+            all_values[x] = values
+
+        personal_traits = [
+            "strength",
+            "dexterity",
+            "toughness",
+            "perseverance",
+            "brilliance",
+            "senses",
+            "presence",
+        ]
+        for x in range(100):
+            for trait in personal_traits:
+                value = all_values[x][trait]
+                if value < 5 or value > 9:
+                    wrong_values.append(value)
 
         self.assertEqual(len(wrong_values), 0)

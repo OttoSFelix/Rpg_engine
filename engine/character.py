@@ -91,11 +91,17 @@ class Character:
         self.left_leg_cover = left_leg_cover
         self.status = status
 
+        self.effects = []
+
         self.injury = {'head': None, 'torso': None, 'right_arm': None, 'left_arm': None, 'right_leg': None, 'left_leg': None, 'general': []}
 
         self.inventory = []
 
         self.held_weapon = None
+
+        self.statistic_lookup = {'strength': self.strength, 'dexterity': self.dexterity, 'toughness': self.toughness, 'perseverance': self.perseverance, \
+        'brilliance': self.brilliance, 'senses': self.senses, 'presence': self.presence, 'mental': self.mental, 'sharpstrike': self.sharpstrike, 'ravage': self.ravage, \
+        'melee': self.melee, 'special': self.special, 'stealth': self.stealth, 'hardware': self.hardware, 'ordnance': self.ordnance, 'medical': self.medical}
 
     def attack(self, target: 'Character', bodypart: str):
         if not self.mental_check():
