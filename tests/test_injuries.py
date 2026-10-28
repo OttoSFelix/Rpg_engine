@@ -107,3 +107,19 @@ class TestInjuries(DatabaseTestcase):
         correct = [None, None, None, None, []]
 
         self.assertEqual(correct, result)
+
+    def test_movement_after_injury(self):
+        character: Character = self.game.character_table[1]
+
+        character.injury['right_leg'] = 'fracture'
+
+        result = []
+        result.append(character.movement_stat)
+        result.append(character.move(3))
+        result.append(character.move(2))
+        result.append(character.move(1))
+        result.append(character.movement_stat)
+
+        correct = [0, False, False, True, 1]
+
+        self.assertEqual(correct, result)

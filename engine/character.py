@@ -162,8 +162,29 @@ class Character:
                     self.movement_stat = amount
                     return True
 
-        if self.injury['right_leg'] == 'fracture' or self.injury["left_leg"] == 'fracture' \
-        or self.injury['right_leg'] == 'impact_stun' or self.injury['left_leg'] == 'impact_stun':
+        if self.injury['right_leg'] == 'impact_stun' or self.injury['left_leg'] == 'impact_stun':
+            adrenaline = False
+            for effect in self.effects:
+                if effect[0] == 'Hyposhot A':
+                    adrenaline = True
+            
+            if not adrenaline:
+                if amount > 1:
+                    return False
+                self.movement_stat = amount
+                return True
+            else:
+                if amount == 3:
+                    weight_modifier = self.get_weight_modifier(self.get_weight_statistic(self.get_inventory_weight()))
+                    if self.stamina - weight_modifier < 0:
+                        return False
+                    self.movement_stat = amount
+                    self.stamina -= weight_modifier
+                    return True
+                self.movement_stat = amount
+                return True
+
+        if self.injury['right_leg'] == 'fracture' or self.injury["left_leg"] == 'fracture':
             if amount > 1:
                 return False
             self.movement_stat = amount 
@@ -255,6 +276,9 @@ class Character:
             self.injury[bodypart].append(injury)
         else:
             self.injury[bodypart] = injury
+
+    def cure(self, bodypart: str) -> None:
+        self.injury[bodypart] = None
 
     def injury_table(self, throw: int, bodypart: str, damage_type: str) -> str:
         table = {
@@ -423,37 +447,49 @@ class Character:
     def injury_attack_modifier(self) -> int:
         # ∀total_modifier >= 0
         total_modifier = 0
+
+        wound_modifier = 1
+        dislocation_modifier = 3
+        stun_modifier = 4
+
+        for effect in self.effects:
+            if effect[0] == "Hyposhot A":
+                wound_modifier = 0
+                dislocation_modifier = 0
+                stun_modifier = 0
+            
+
         if self.held_weapon.two_handed:
             if self.injury['right_arm'] == 'fracture':
                 total_modifier += 6
             if self.injury['left_arm'] == 'fracture':
                 total_modifier += 6
             if self.injury['right_arm'] == 'wound':
-                total_modifier += 1
+                total_modifier += wound_modifier
             if self.injury['left_arm'] == 'wound':
-                total_modifier += 1
+                total_modifier += wound_modifier
             if self.injury['right_arm'] == 'dislocation':
-                total_modifier += 3
+                total_modifier += dislocation_modifier
             if self.injury['left_arm'] == 'dislocation':
-                total_modifier += 3
+                total_modifier += dislocation_modifier
             if self.injury['right_arm'] == 'impact_stun':
-                total_modifier += 4
+                total_modifier += stun_modifier
             if self.injury['left_arm'] == 'impact_stun':
-                total_modifier += 4
+                total_modifier += stun_modifier
         else:
             total_modifier += min(self.injury_modifier_value(self.injury['right_arm']), self.injury_modifier_value(self.injury['left_arm']))
 
         if self.injury['torso'] == 'fracture':
             total_modifier += 3
         if self.injury['torso'] == 'wound':
-            total_modifier += 1
+            total_modifier += wound_modifier
         if self.injury['torso'] == 'impact_stun':
-            total_modifier += 4
+            total_modifier += stun_modifier
         
         if self.injury['head'] == 'fracture':
             total_modifier += 6
         if self.injury['head'] == 'wound':
-            total_modifier += 1
+            total_modifier += wound_modifier
         if self.injury['head'] == 'concussion':
             total_modifier += 4
 

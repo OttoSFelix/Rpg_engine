@@ -101,6 +101,7 @@ class Item:
             item_id=id,
             name='Hyposhot Injector',
             effect={},
+            cure=[],
             duration=0,
             weight=4
         )
@@ -112,8 +113,10 @@ class Item:
             item_id=id,
             name='Hyposhot A',
             effect=effect,
+            cure=['concussion'],
             duration=5,
-            weight=2
+            weight=2,
+            wakes_up=True
         )
 
     def hyposhot_z(self) -> Stim:
@@ -274,18 +277,35 @@ class Stim:
         item_id: str,
         name: str,
         effect: dict,
+        cure: list,
         duration: int,
-        weight: int):
+        weight: int,
+        wakes_up: bool = False):
 
         self.item_id = item_id
         self.name = name
         self.effect = effect
+        self.cure = cure
         self.duration = duration
         self.weight = weight
+        self.wakes_up = wakes_up
 
-    def use(self, character: Character):
+    def use(self, character: Character, bodypart: str = None):
         for stat, modifier in self.effect:
             character.statistic_lookup[stat] += modifier
+
+        character.effects.append((self.name, self.duration))
+
+        if bodypart != None:
+            for c in self.cure:
+                if character.injury[bodypart] == c:
+                    character.cure(bodypart)
+
+        if self.wakes_up:
+            if character.injury['head'] == 'knocked_out':
+                character.cure('head')
+
+
 
     def undo(self, character: Character):
         for stat, modifier in self.effects:
