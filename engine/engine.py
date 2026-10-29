@@ -2,17 +2,20 @@ from engine.character import Character
 from engine.items import ItemPool
 from engine.generator import Generator
 from engine.database import Database
-import random
+from engine.dice import Dice
 
+DICE = Dice()
 
 class Game:
     def __init__(self):
         self.round_table = []
+        self.round_pointer = 0
         self.character_table = {}
         self.item_table = {}
         self.db = Database()
         self.generator = Generator()
         self.character_count = 0
+        self.gen_item = ItemPool()
 
     def initialize(self) -> None:
         self.db.init_database()
@@ -60,9 +63,8 @@ class Game:
 
             self.add_character(values)
 
-        gen_item = ItemPool()
         for item in self.db.get_items():
-            item_object = gen_item.load_item(item[2], item[0])
+            item_object = self.gen_item.load_item(item[2], item[0])
             self.item_table[item[0]] = item_object
             character_id = item[1]
             self.character_table[character_id].inventory.append(item_object)
@@ -135,7 +137,139 @@ class Game:
 
         return inventory
 
-        
+    def add_item_to_character_inventory(self, character_id: int, item_name: str) -> None:
+        character: Character = self.character_table[character_id]
+        item = self.gen_item.item_table[item_name]()
+        character.add_item(item)
+
+    def delete_item_from_character_inventory(self, character_id: str, item_id: str) -> None:
+        character: Character = self.character_table[character_id]
+        character.delete_item(item_id)
+
+    def start_game(self, initiative_values) -> None:
+        self.initiative_values = initiative_values
+        for character_id in self.character_table.keys():
+            self.round_table.append(character_id)
+
+        self.round_table.sort()
+        self.round_pointer = 0
+
+    def next_turn(self) -> Character:
+        while True:
+            character_id = self.round_table[self.round_pointer]
+            character = self.character_table[character_id]
+
+            if self.round_pointer >= len(self.round_table) - 1:
+                self.round_pointer = 0
+            else:
+                self.round_pointer += 1
+
+            if character.health > 0:
+                break
+
+        return character
+
+    def end_turn(self, character_id: str) -> None:
+        character = self.character_table[character_id]
+        while True:
+            pointer = 0
+            for effect in character.effects:
+                if effect[1] == 0:
+                    character.effects.pop(pointer)
+                    break
+                pointer += 1
+            break
+
+        for effect in character.effects:
+            effect[1] -= 1
+
+    def return_game_state(self) -> dict:
+        game_state = {}
+
+        for character in self.character_table.values():
+            game_state[character.id] = {
+                'health': character.health,
+                'head': character.head,
+                'torso': character.torso,
+                'right_arm': character.right_arm,
+                'left_arm': character.left_arm,
+                'right_leg': character.right_leg,
+                'left_leg': character.left_leg,
+                'head_cover': character.head_cover,
+                'torso_cover': character.torso_cover,
+                'right_arm_cover': character.right_arm_cover,
+                'left_arm_cover': character.left_arm_cover,
+                'right_leg_cover': character.right_leg_cover,
+                'left_leg_cover': character.left_leg_cover,
+                'inventory': character.inventory,
+                'injuries': character.injury,
+                'effects': character.effects,
+                'mental': character.mental
+            }
+
+        return game_state
+
+    def set_character_state(self, values) -> None:
+        character = self.character_table[values['id']]
+
+        character.name = values.get('name', character.name)
+        character.health = values.get('health', character.health)
+        character.head = values.get('head', character.head)
+        character.torso = values.get('torso', character.torso)
+        character.right_arm = values.get('right_arm', character.right_arm)
+        character.left_arm = values.get('left_arm', character.left_arm)
+        character.right_leg = values.get('right_leg', character.right_leg)
+        character.left_leg = values.get('left_leg', character.left_leg)
+        character.head_cover = values.get('head_cover', character.head_cover)
+        character.torso_cover = values.get('torso_cover', character.torso_cover)
+        character.right_arm_cover = values.get('right_arm_cover', character.right_arm_cover)
+        character.left_arm_cover = values.get('left_arm_cover', character.left_arm_cover)
+        character.right_leg_cover = values.get('right_leg_cover', character.right_leg_cover)
+        character.left_leg_cover = values.get('left_leg_cover', character.left_leg_cover)
+        character.inventory = values.get('inventory', character.inventory)
+        character.injury = values.get('injury', character.injury)
+        character.effects = values.get('effects', character.effects)
+        character.strength = values.get('strength', character.strength)
+        character.dexterity = values.get('dexterity', character.dexterity)
+        character.toughness = values.get('toughness', character.toughness)
+        character.perseverance = values.get('perseverance', character.perseverance)
+        character.brilliance = values.get('brilliance', character.brilliance)
+        character.senses = values.get('senses', character.senses)
+        character.presence = values.get('presence', character.presence)
+        character.sharpstrike = values.get('sharpstrike', character.sharpstrike)
+        character.ravage = values.get('ravage', character.ravage)
+        character.melee = values.get('melee', character.melee)
+        character.special = values.get('special', character.special)
+        character.stealth = values.get('stealth', character.stealth)
+        character.hardware = values.get('hardware', character.hardware)
+        character.ordnance = values.get('ordnance', character.ordnance)
+        character.medical = values.get('medical', character.medical)
+        character.health = values.get('health', character.health)
+        character.head = values.get('head', character.head)
+        character.torso = values.get('torso', character.torso)
+        character.right_arm = values.get('right_arm', character.right_arm)
+        character.left_arm = values.get('left_arm', character.left_arm)
+        character.right_leg = values.get('right_leg', character.right_leg)
+        character.left_leg = values.get('left_leg', character.left_leg)
+        character.mental = values.get('mental', character.mental)
+        character.movement_stat = values.get('movement_stat', character.movement_stat)
+        character.stamina = values.get('stamina', character.stamina)
+        character.full_cover = values.get('full_cover', character.full_cover)
+        character.head_cover = values.get('head_cover', character.head_cover)
+        character.torso_cover = values.get('torso_cover', character.torso_cover)
+        character.right_arm_cover = values.get('right_arm_cover', character.right_arm_cover)
+        character.left_arm_cover = values.get('left_arm_cover', character.left_arm_cover)
+        character.right_leg_cover = values.get('right_leg_cover', character.right_leg_cover)
+        character.left_leg_cover = values.get('left_leg_cover', character.left_leg_cover)
+        character.status = values.get('status', character.status)
+
+    def key_initiative_sort(self, id):
+        character: Character = self.character_table[id]
+
+        result = DICE.throw('1d12')[0] + character.stat_modifier(character.dexterity) + character.stat_modifier(character.senses)
+
+        return self.initiative_values.get(id, result)
+
     def save(self) -> None:
         self.db.clear_items()
         self.db.clear_characters()
@@ -176,7 +310,7 @@ if __name__ == '__main__':
     game = Game()
     gen = Generator()
     game.db.reset_database()
-    
+
     values = game.flush_character_traits()
     values['name'] = 'Jackson'
 

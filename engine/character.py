@@ -107,6 +107,8 @@ class Character:
         if not self.mental_check():
             return False
 
+        target_initial_bodypart_health = target.get_bodypart_health(bodypart)
+
         modifier = 0
         if self.held_weapon.type == "sharpstrike":
             modifier += self.sharpstrike
@@ -134,6 +136,10 @@ class Character:
 
         if total_damage > 0:
             target.health -= total_damage
+
+            if target.get_bodypart_health(bodypart) == 0 and target_initial_bodypart_health != 0:
+                target.injure(bodypart, total_damage, self.held_weapon.damage_type)
+
             return True
         return False
 
@@ -430,7 +436,25 @@ class Character:
         }
         return values
 
-    def get_bodypart_cover(self, bodypart: str) -> str:
+    def get_bodypart_health(self, bodypart: str) -> int:
+        if bodypart == 'head':
+            return self.head
+        if bodypart == 'left_arm':
+            return self.left_arm
+        if bodypart == 'right_arm':
+            return self.right_arm
+        if bodypart == 'torso':
+            return self.torso
+        if bodypart == 'left_leg':
+            return self.left_leg
+        if bodypart == 'right_leg':
+            return self.right_leg
+        if bodypart == 'full':
+            return self.health
+
+        return ValueError(f"Invalid bodypart in Character.get_bodypart_health: {bodypart}")
+
+    def get_bodypart_cover(self, bodypart: str) -> int:
         if bodypart == 'head':
             return self.head_cover
         if bodypart == 'left_arm':
@@ -443,6 +467,8 @@ class Character:
             return self.left_leg_cover
         if bodypart == 'right_leg':
             return self.right_leg_cover
+        if bodypart == 'health':
+            return self.full_cover
 
         return ValueError(f"Invalid bodypart in Character.get_bodypart_cover: {bodypart}")
 

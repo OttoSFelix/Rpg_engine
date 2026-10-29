@@ -160,3 +160,15 @@ class TestMechanics(DatabaseTestcase):
             result.append(character.stat_modifier(s))
         
         self.assertEqual(correct, result)
+
+    def test_target_injury_after_attack(self):
+        character: Character = self.game.character_table[1]
+        target: Character = self.game.character_table[2]
+        character.equip_weapon(self.game.item_table['fas3y4'])
+
+        character.attack(target, 'right_leg')
+
+        possible_injuries = ['wound', 'fracture']
+        target_injury = target.injury['right_leg']
+
+        self.assertIn(target_injury, possible_injuries)
