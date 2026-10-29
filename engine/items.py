@@ -32,14 +32,14 @@ class ItemPool:
             "sharpstrike magazine": self.sharpstrike_magazine,
             "test_item": self.test_item,
 
-        }        
+        }
 
     def load_item(self, name: str, id: str):
         item = self.item_table[name]()
         item.item_id = id
         return item
 
-    def mxr_17(self) -> Weapon:
+    def mxr_17(self) -> 'Weapon':
         id = secrets.token_hex(8)
         return Weapon(
             name='MXR-17',
@@ -58,7 +58,7 @@ class ItemPool:
             precise_threshold=ItemPool.RAVAGE_PRECISE_THRESHOLD
         )
 
-    def spr_208(self) -> Weapon:
+    def spr_208(self) -> 'Weapon':
         id = secrets.token_hex(8)
         return Weapon(
             name='SP-R 208',
@@ -77,7 +77,7 @@ class ItemPool:
             precise_threshold=ItemPool.SHARPSTRIKE_PRECISE_THRESHOLD
         )
 
-    def coda_9(self) -> Weapon:
+    def coda_9(self) -> 'Weapon':
         id = secrets.token_hex(8)
         return Weapon(
             name='CODA-9',
@@ -97,7 +97,7 @@ class ItemPool:
             two_handed=False
         )
 
-    def hyposhot_injector(self) -> Stim:
+    def hyposhot_injector(self) -> 'Stim':
         id = secrets.token_hex(8)
         return Item(
             item_id=id,
@@ -105,7 +105,7 @@ class ItemPool:
             weight=4
         )
 
-    def hyposhot_a(self) -> Stim:
+    def hyposhot_a(self) -> 'Stim':
         id = secrets.token_hex(8)
         effect = {'senses': 1, 'mental': -2, 'toughness': 1, 'perseverance': 1}
         return Stim(
@@ -118,18 +118,19 @@ class ItemPool:
             wakes_up=True
         )
 
-    def hyposhot_z(self) -> Stim:
+    def hyposhot_z(self) -> 'Stim':
         id = secrets.token_hex(8)
-        effect = {'mental': -2}
+        effect = {'mental': -4}
         return Stim(
             item_id=id,
             name='Hyposhot Z',
             effect=effect,
+            cure=[],
             duration=float('inf'),
             weight=2
         )
 
-    def c4(self) -> Ordnance:
+    def c4(self) -> 'Ordnance':
         id = secrets.token_hex(8)
         return Ordnance(
             name='C4',
@@ -140,7 +141,7 @@ class ItemPool:
             weight=4
         )
 
-    def flash(self) -> Ordnance:
+    def flash(self) -> 'Ordnance':
         id = secrets.token_hex(8)
         return Ordnance(
             name='flash',
@@ -152,7 +153,7 @@ class ItemPool:
             effect='blind'
         )
 
-    def lockpick(self) -> Tool:
+    def lockpick(self) -> 'Tool':
         id = secrets.token_hex(8)
         return Tool(
             name='lockpick',
@@ -179,7 +180,7 @@ class ItemPool:
         )
 
 
-    def test_item(self) -> Weapon:
+    def test_item(self) -> 'Weapon':
         return Weapon(
             'test_item',
             '1',
@@ -213,16 +214,16 @@ class Weapon(Item):
     def __init__(
         self,
         name: str,
-        item_id: str, 
-        type: str, 
-        weight: int, 
-        precision: int, 
-        power: int, 
+        item_id: str,
+        type: str,
+        weight: int,
+        precision: int,
+        power: int,
         damage: int,
-        damage_type: str, 
-        range: int, 
+        damage_type: str,
+        range: int,
         bullet_amount: int,
-        magazine_size: int, 
+        magazine_size: int,
         miss_threshold: int,
         hit_threshold: int,
         precise_threshold: int,
@@ -240,12 +241,12 @@ class Weapon(Item):
         self.name = name
 
         self.magazine_size = magazine_size
-        
+
         self.magazine_bullets = magazine_size
         self.miss_threshold = miss_threshold
         self.hit_threshold = hit_threshold
         self.precise_threshold = precise_threshold
-        
+
         self.two_handed = two_handed
 
     def attack(self, modifier: int) -> list:
@@ -277,7 +278,7 @@ class Weapon(Item):
                 if item.name == f'{self.type} magazine':
                     spare_mag = item
                     break
-        
+
         if spare_mag:
             character.delete_item(spare_mag.item_id)
             self.magazine_bullets = self.magazine_size
