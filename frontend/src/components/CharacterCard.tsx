@@ -11,6 +11,7 @@ interface CharacterCardProps {
   onRandomizeTraits: (id: number, difficulty: number) => void;
   onSaveNewCharacter?: (draft: CharacterData) => void;
   onDeleteCharacter?: (id: number) => void;
+  onOpenAttackModal?: (character: CharacterData) => void;
   onToast: (msg: string) => void;
 }
 
@@ -23,6 +24,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
   onRandomizeTraits,
   onSaveNewCharacter,
   onDeleteCharacter,
+  onOpenAttackModal,
   onToast,
 }) => {
   const [difficulty, setDifficulty] = useState<number>(3);
@@ -83,7 +85,17 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
 
   const handleAttackClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onToast(`Attack action for "${character.name || 'Unit'}" is not yet implemented.`);
+    if (!isCurrentTurn) {
+      onToast("Attack is only available to the character whose turn it currently is.");
+      return;
+    }
+    if (character.isNewDraft) {
+      onToast('Please enter a name first to save the character before attacking.');
+      return;
+    }
+    if (onOpenAttackModal) {
+      onOpenAttackModal(character);
+    }
   };
 
   const handleRandomizeClick = (e: React.MouseEvent) => {
@@ -150,41 +162,56 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
             </div>
           </div>
 
+          {/* Held weapon badge */}
+          {character.held_weapon_name && (
+            <div style={{ fontSize: '0.72rem', color: '#e5a93c', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>Held:</span>
+              <strong style={{ color: '#fff' }}>{character.held_weapon_name}</strong>
+            </div>
+          )}
+
           {/* Injuries indicator icons */}
           <div className="injuries-container" style={{ marginTop: '4px' }}>
             {isDown && (
-              <div className="injury-icon-wrapper" title="Injury: DOWN (Health <= 0)">
-                <img src="/images/down.png" alt="Down" className="injury-icon" />
+              <div className="injury-icon-wrapper" title="down">
+                <img src="/images/down.png" alt="down" className="injury-icon" />
+                <span className="injury-hover-badge">down</span>
               </div>
             )}
             {hasHeadInjury && !isDown && (
-              <div className="injury-icon-wrapper" title={`Head Injury: ${character.injury.head}`}>
+              <div className="injury-icon-wrapper" title={character.injury.head!}>
                 <img src="/images/head_injury.png" alt="Head Injury" className="injury-icon" />
+                <span className="injury-hover-badge">{character.injury.head}</span>
               </div>
             )}
             {hasTorsoInjury && (
-              <div className="injury-icon-wrapper" title={`Torso Injury: ${character.injury.torso}`}>
+              <div className="injury-icon-wrapper" title={character.injury.torso!}>
                 <img src="/images/torso_injury.png" alt="Torso Injury" className="injury-icon" />
+                <span className="injury-hover-badge">{character.injury.torso}</span>
               </div>
             )}
             {hasLeftArmInjury && (
-              <div className="injury-icon-wrapper" title={`Left Arm Injury: ${character.injury.left_arm}`}>
+              <div className="injury-icon-wrapper" title={character.injury.left_arm!}>
                 <img src="/images/left_arm_injury.png" alt="Left Arm Injury" className="injury-icon" />
+                <span className="injury-hover-badge">{character.injury.left_arm}</span>
               </div>
             )}
             {hasRightArmInjury && (
-              <div className="injury-icon-wrapper" title={`Right Arm Injury: ${character.injury.right_arm}`}>
+              <div className="injury-icon-wrapper" title={character.injury.right_arm!}>
                 <img src="/images/right_arm_injury.png" alt="Right Arm Injury" className="injury-icon" />
+                <span className="injury-hover-badge">{character.injury.right_arm}</span>
               </div>
             )}
             {hasLeftLegInjury && (
-              <div className="injury-icon-wrapper" title={`Left Leg Injury: ${character.injury.left_leg}`}>
+              <div className="injury-icon-wrapper" title={character.injury.left_leg!}>
                 <img src="/images/left_leg_injury.png" alt="Left Leg Injury" className="injury-icon" />
+                <span className="injury-hover-badge">{character.injury.left_leg}</span>
               </div>
             )}
             {hasRightLegInjury && (
-              <div className="injury-icon-wrapper" title={`Right Leg Injury: ${character.injury.right_leg}`}>
+              <div className="injury-icon-wrapper" title={character.injury.right_leg!}>
                 <img src="/images/right_leg_injury.png" alt="Right Leg Injury" className="injury-icon" />
+                <span className="injury-hover-badge">{character.injury.right_leg}</span>
               </div>
             )}
           </div>
@@ -383,11 +410,16 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
             </button>
 
             <button
-              className="btn-action attack-btn"
+              className={`btn-action attack-btn ${!isCurrentTurn ? 'disabled' : ''}`}
+              disabled={!isCurrentTurn}
               onClick={handleAttackClick}
-              title="Attack (functionality not yet implemented)"
+              title={
+                isCurrentTurn
+                  ? 'Attack a target'
+                  : "Attack is only available to the character whose turn it currently is"
+              }
             >
-              Attack
+              Attack {isCurrentTurn ? '' : '(Not Turn)'}
             </button>
 
             {onDeleteCharacter && !character.isNewDraft && (

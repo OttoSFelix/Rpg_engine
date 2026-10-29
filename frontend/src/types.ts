@@ -13,6 +13,7 @@ export interface ItemData {
   magazine_size?: number | null;
   effect?: string | null;
   wakes_up?: boolean | null;
+  is_held?: boolean;
 }
 
 export interface Injuries {
@@ -71,6 +72,8 @@ export interface CharacterData {
   injury: Injuries;
   effects: any[];
   inventory: ItemData[];
+  held_weapon_id?: string | null;
+  held_weapon_name?: string | null;
   // Temporary client-side flag for unsaved characters
   isNewDraft?: boolean;
 }

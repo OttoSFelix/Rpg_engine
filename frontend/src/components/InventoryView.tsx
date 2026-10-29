@@ -6,6 +6,7 @@ interface InventoryViewProps {
   onRandomizeInventory: (charId: number, difficulty: number) => void;
   onDeleteItem: (charId: number, itemId: string) => void;
   onReloadWeapon: (charId: number, itemId: string) => void;
+  onEquipWeapon: (charId: number, itemId: string) => void;
   onDropItem: (charId: number, itemName: string) => void;
   onClose?: () => void;
 }
@@ -15,6 +16,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   onRandomizeInventory,
   onDeleteItem,
   onReloadWeapon,
+  onEquipWeapon,
   onDropItem,
   onClose,
 }) => {
@@ -116,60 +118,85 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             Inventory is empty.
           </div>
         ) : (
-          character.inventory.map((item) => (
-            <div key={item.item_id || `${item.name}-${Math.random()}`} className="inv-item-card">
-              <div className="inv-item-top">
-                <span className="inv-item-name">{item.name}</span>
-                <span className="inv-item-weight">{item.weight}</span>
-              </div>
+          character.inventory.map((item) => {
+            const isHeld = (character.held_weapon_id === item.item_id) || item.is_held || false;
+            return (
+              <div
+                key={item.item_id || `${item.name}-${Math.random()}`}
+                className={`inv-item-card ${isHeld ? 'held-weapon' : ''}`}
+              >
+                <div className="inv-item-top">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="inv-item-name">{item.name}</span>
+                    {isHeld && <span className="held-weapon-badge">Held</span>}
+                  </div>
+                  <span className="inv-item-weight">{item.weight}</span>
+                </div>
 
-              <div className="inv-item-details">
-                <span>
-                  {item.is_weapon ? (
-                    <span className="ammo-badge">
-                      Ammo: {item.magazine_bullets !== null ? item.magazine_bullets : '-'} /{' '}
-                      {item.magazine_size !== null ? item.magazine_size : '-'}
-                    </span>
-                  ) : item.effect ? (
-                    <span>
-                      Effect:{' '}
-                      {typeof item.effect === 'object' && item.effect !== null
-                        ? Object.entries(item.effect)
-                          .map(([k, v]) => `${k}: ${v}`)
-                          .join(', ')
-                        : String(item.effect)}
-                    </span>
-                  ) : (
-                    <span>Type: {item.type}</span>
-                  )}
-                </span>
+                <div className="inv-item-details">
+                  <span>
+                    {item.is_weapon ? (
+                      <span className="ammo-badge">
+                        Ammo: {item.magazine_bullets !== null ? item.magazine_bullets : '-'} /{' '}
+                        {item.magazine_size !== null ? item.magazine_size : '-'}
+                      </span>
+                    ) : item.effect ? (
+                      <span>
+                        Effect:{' '}
+                        {typeof item.effect === 'object' && item.effect !== null
+                          ? Object.entries(item.effect)
+                            .map(([k, v]) => `${k}: ${v}`)
+                            .join(', ')
+                          : String(item.effect)}
+                      </span>
+                    ) : (
+                      <span>Type: {item.type}</span>
+                    )}
+                  </span>
 
-                <div className="inv-item-actions">
-                  {item.is_weapon && (
+                  <div className="inv-item-actions">
+                    {item.is_weapon && (
+                      <>
+                        {isHeld ? (
+                          <span className="btn-equipped" title="Currently equipped as held weapon">
+                            Equipped
+                          </span>
+                        ) : (
+                          <button
+                            className="btn-equip"
+                            onClick={() => onEquipWeapon(character.id, item.item_id)}
+                            title={`Equip ${item.name} as held weapon`}
+                          >
+                            Equip
+                          </button>
+                        )}
+
+                        <button
+                          className="btn-reload"
+                          onClick={() => onReloadWeapon(character.id, item.item_id)}
+                          title={`Reload weapon (${item.magazine_bullets}/${item.magazine_size})`}
+                        >
+                          Reload
+                        </button>
+                      </>
+                    )}
+
                     <button
-                      className="btn-reload"
-                      onClick={() => onReloadWeapon(character.id, item.item_id)}
-                      title={`Reload weapon (${item.magazine_bullets}/${item.magazine_size})`}
+                      className="btn-delete-item"
+                      onClick={() => onDeleteItem(character.id, item.item_id)}
+                      title={`Delete ${item.name} from inventory`}
                     >
-                      Reload
+                      <img
+                        src="/images/delete.png"
+                        alt="Delete"
+                        style={{ width: '16px', height: '16px', objectFit: 'contain' }}
+                      />
                     </button>
-                  )}
-
-                  <button
-                    className="btn-delete-item"
-                    onClick={() => onDeleteItem(character.id, item.item_id)}
-                    title={`Delete ${item.name} from inventory`}
-                  >
-                    <img
-                      src="/images/delete.png"
-                      alt="Delete"
-                      style={{ width: '16px', height: '16px', objectFit: 'contain' }}
-                    />
-                  </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
 
         {/* Drag and Drop notice */}

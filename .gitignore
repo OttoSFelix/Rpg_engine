@@ -8,3 +8,5 @@ frontend/dist/
 testfile.py
 todo.txt
 run_tests.sh
+
+test_frontend_api.py

@@ -5,12 +5,14 @@ import { CharacterCard } from './components/CharacterCard';
 import { InventoryView } from './components/InventoryView';
 import { ItemPoolView } from './components/ItemPoolView';
 import { GameControls } from './components/GameControls';
+import { AttackModal } from './components/AttackModal';
 
 export const App: React.FC = () => {
   const [characters, setCharacters] = useState<CharacterData[]>([]);
   const [itemPool, setItemPool] = useState<ItemData[]>([]);
   const [selectedCharId, setSelectedCharId] = useState<number | null>(null);
   const [currentTurnId, setCurrentTurnId] = useState<number | null>(null);
+  const [attackModalAttacker, setAttackModalAttacker] = useState<CharacterData | null>(null);
   const [gameStarted, setGameStarted] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -234,14 +236,21 @@ export const App: React.FC = () => {
   const handleReloadWeapon = async (charId: number, itemId: string) => {
     try {
       const res = await api.reloadWeapon(charId, itemId);
-      if (res.inventory) {
-        setCharacters((prev) =>
-          prev.map((c) => (c.id === charId ? { ...c, inventory: res.inventory! } : c))
-        );
-      }
       showToast(res.message);
+      await loadState();
     } catch (err: any) {
       showToast(`Reload failed: ${err.message}`);
+    }
+  };
+
+  // Inventory: Equip weapon
+  const handleEquipWeapon = async (charId: number, itemId: string) => {
+    try {
+      const res = await api.equipWeapon(charId, itemId);
+      showToast(res.message);
+      await loadState();
+    } catch (err: any) {
+      showToast(`Equip failed: ${err.message}`);
     }
   };
 
@@ -288,6 +297,30 @@ export const App: React.FC = () => {
       }
     } catch (err: any) {
       showToast(`Failed to advance turn: ${err.message}`);
+    }
+  };
+
+  // Game Controls: Stop Game
+  const handleStopGame = async () => {
+    try {
+      const res = await api.stopGame();
+      setGameStarted(false);
+      setCurrentTurnId(null);
+      showToast(res.message || 'Game stopped.');
+      await loadState();
+    } catch (err: any) {
+      showToast(`Failed to stop game: ${err.message}`);
+    }
+  };
+
+  // Attack Execution
+  const handleExecuteAttack = async (attackerId: number, targetId: number, bodypart: string) => {
+    try {
+      const res = await api.attackCharacter(attackerId, targetId, bodypart);
+      showToast(res.message);
+      await loadState();
+    } catch (err: any) {
+      showToast(`Attack failed: ${err.message}`);
     }
   };
 
@@ -358,6 +391,7 @@ export const App: React.FC = () => {
                   onRandomizeTraits={handleRandomizeTraits}
                   onSaveNewCharacter={handleSaveNewCharacter}
                   onDeleteCharacter={handleDeleteCharacter}
+                  onOpenAttackModal={(c) => setAttackModalAttacker(c)}
                   onToast={showToast}
                 />
               ))
@@ -375,6 +409,7 @@ export const App: React.FC = () => {
                 onRandomizeInventory={handleRandomizeInventory}
                 onDeleteItem={handleDeleteItem}
                 onReloadWeapon={handleReloadWeapon}
+                onEquipWeapon={handleEquipWeapon}
                 onDropItem={handleAddItemToInventory}
                 onClose={() => setSelectedCharId(null)}
               />
@@ -398,6 +433,7 @@ export const App: React.FC = () => {
                 onRandomizeInventory={handleRandomizeInventory}
                 onDeleteItem={handleDeleteItem}
                 onReloadWeapon={handleReloadWeapon}
+                onEquipWeapon={handleEquipWeapon}
                 onDropItem={handleAddItemToInventory}
                 onClose={() => setSelectedCharId(null)}
               />
@@ -410,6 +446,7 @@ export const App: React.FC = () => {
             onAddEnemy={() => handleAddNewCharacter('enemy')}
             onStartGame={handleStartGame}
             onNextTurn={handleNextTurn}
+            onStopGame={handleStopGame}
             onSaveGame={handleSaveGame}
             gameStarted={gameStarted}
             isSaving={isSaving}
@@ -448,6 +485,7 @@ export const App: React.FC = () => {
                   onRandomizeTraits={handleRandomizeTraits}
                   onSaveNewCharacter={handleSaveNewCharacter}
                   onDeleteCharacter={handleDeleteCharacter}
+                  onOpenAttackModal={(c) => setAttackModalAttacker(c)}
                   onToast={showToast}
                 />
               ))
@@ -456,10 +494,19 @@ export const App: React.FC = () => {
         </section>
       </main>
 
+      {/* Attack Targeting Modal */}
+      <AttackModal
+        attacker={attackModalAttacker}
+        characters={characters}
+        isOpen={!!attackModalAttacker}
+        onClose={() => setAttackModalAttacker(null)}
+        onExecuteAttack={handleExecuteAttack}
+      />
+
       {/* Toast Notification Bar */}
       {toastMessage && (
         <div className="toast-bar">
-          <span>🔔</span>
+          <span></span>
           <span>{toastMessage}</span>
         </div>
       )}

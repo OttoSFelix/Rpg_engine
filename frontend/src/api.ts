@@ -107,11 +107,29 @@ export async function deleteItemFromInventory(
 export async function reloadWeapon(
   charId: number,
   itemId: string
-): Promise<{ success: boolean; message: string; magazine_bullets?: number; inventory?: ItemData[] }> {
+): Promise<{ success: boolean; message: string; magazine_bullets?: number; inventory?: ItemData[]; current_turn_character_id?: number | null }> {
   const res = await fetch(`${API_BASE}/characters/${charId}/inventory/${itemId}/reload`, {
     method: 'POST',
   });
   if (!res.ok) throw new Error(`Failed to reload weapon ${itemId}: ${res.statusText}`);
+  return res.json();
+}
+
+export async function equipWeapon(
+  charId: number,
+  itemId: string
+): Promise<{
+  success: boolean;
+  message: string;
+  held_weapon_id?: string;
+  current_turn_character_id?: number | null;
+  character?: CharacterData;
+  inventory?: ItemData[];
+}> {
+  const res = await fetch(`${API_BASE}/characters/${charId}/inventory/${itemId}/equip`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Failed to equip weapon ${itemId}: ${res.statusText}`);
   return res.json();
 }
 
@@ -143,6 +161,43 @@ export async function nextTurn(): Promise<{
     method: 'POST',
   });
   if (!res.ok) throw new Error(`Failed to step turn: ${res.statusText}`);
+  return res.json();
+}
+
+export async function stopGame(): Promise<{
+  success: boolean;
+  message: string;
+  game_started: boolean;
+  current_turn_character_id: number | null;
+}> {
+  const res = await fetch(`${API_BASE}/game/stop`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`Failed to stop game: ${res.statusText}`);
+  return res.json();
+}
+
+export async function attackCharacter(
+  attackerId: number,
+  targetId: number,
+  bodypart: string
+): Promise<{
+  success: boolean;
+  hit: boolean;
+  damage_dealt: number;
+  message: string;
+  attacker: CharacterData;
+  target: CharacterData;
+}> {
+  const res = await fetch(`${API_BASE}/characters/${attackerId}/attack`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_id: targetId, bodypart }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || 'Attack request failed');
+  }
   return res.json();
 }
 

@@ -150,8 +150,24 @@ class Game:
 
     def character_reload(self, character_id: str, item_id: str) -> bool:
         character: Character = self.character_table[character_id]
-        item: Weapon = self.item_table[item_id]
+        item: Weapon = self.item_table.get(item_id)
+        if item == None:
+            return False
         return item.reload(character)
+
+    def character_attack(self, character_id: int, target_id: int, bodypart: str) -> bool:
+        character: Character = self.character_table[character_id]
+        target: Character = self.character_table[target_id]
+
+        return character.attack(target, bodypart)
+
+    def character_equip_weapon(self, character_id: int, item_id: str) -> bool:
+        character: Character = self.character_table[character_id]
+        weapon: Weapon = self.item_table.get(item_id)
+        if weapon == None:
+            return False
+        character.equip_weapon(weapon)
+        return True
 
     def start_game(self, initiative_values) -> None:
         self.initiative_values = initiative_values

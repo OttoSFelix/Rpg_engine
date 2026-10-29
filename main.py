@@ -29,6 +29,13 @@ def safe_stim_init(self, item_id, name, effect, cure=None, duration=0, weight=0,
     orig_stim_init(self, item_id=item_id, name=name, effect=effect, cure=cure, duration=duration, weight=weight, wakes_up=wakes_up)
 engine.items.Stim.__init__ = safe_stim_init
 
+orig_weapon_attack = engine.items.Weapon.attack
+def safe_weapon_attack(self, modifier: int) -> list:
+    if getattr(self, "bullet_amount", None) is None:
+        self.bullet_amount = 1
+    return orig_weapon_attack(self, modifier)
+engine.items.Weapon.attack = safe_weapon_attack
+
 app = FastAPI(
     title="RPG Engine API",
     version="1.0.0",
@@ -56,13 +63,15 @@ def startup_event():
     except Exception as e:
         print(f"Startup database initialization warning (may be empty or connecting): {e}")
 
-def serialize_item(item: Any) -> Dict[str, Any]:
+def serialize_item(item: Any, held_id: Optional[str] = None) -> Dict[str, Any]:
     is_weapon = isinstance(item, engine.items.Weapon)
+    item_id = getattr(item, "item_id", "")
     data = {
-        "item_id": getattr(item, "item_id", ""),
+        "item_id": item_id,
         "name": getattr(item, "name", ""),
         "weight": getattr(item, "weight", 0),
         "is_weapon": is_weapon,
+        "is_held": is_weapon and (held_id is not None and item_id == held_id),
         "type": getattr(item, "type", "item"),
         "damage": getattr(item, "damage", None),
         "damage_type": getattr(item, "damage_type", None),
@@ -78,11 +87,15 @@ def serialize_item(item: Any) -> Dict[str, Any]:
 
 def serialize_character(c: Character) -> Dict[str, Any]:
     side = "enemy" if (c.status and c.status.lower() == "enemy") else "player"
+    held_id = getattr(c.held_weapon, "item_id", None)
+    held_name = getattr(c.held_weapon, "name", None)
     return {
         "id": c.id,
         "name": c.name,
         "side": side,
         "status": c.status,
+        "held_weapon_id": held_id,
+        "held_weapon_name": held_name,
         "strength": c.strength,
         "dexterity": c.dexterity,
         "toughness": c.toughness,
@@ -125,7 +138,7 @@ def serialize_character(c: Character) -> Dict[str, Any]:
             "general": c.injury.get("general", []) if isinstance(c.injury, dict) else [],
         },
         "effects": c.effects,
-        "inventory": [serialize_item(item) for item in c.inventory],
+        "inventory": [serialize_item(item, held_id=held_id) for item in c.inventory],
     }
 
 def get_item_pool_list() -> List[Dict[str, Any]]:
@@ -194,6 +207,10 @@ class AddItemRequest(BaseModel):
 
 class StartGameRequest(BaseModel):
     initiative_values: Optional[Dict[str, int]] = None
+
+class AttackRequest(BaseModel):
+    target_id: int
+    bodypart: str
 
 
 @app.get("/api/health")
@@ -343,31 +360,94 @@ def delete_inventory_item(char_id: int, item_id: str):
     character = game.character_table[char_id]
     return [serialize_item(item) for item in character.inventory]
 
+def advance_turn_if_game_active() -> Optional[int]:
+    global current_turn_character_id
+    if not game_started or not game.round_table:
+        return None
+    alive = [cid for cid in game.round_table if game.character_table[cid].health > 0]
+    if not alive:
+        current_turn_character_id = None
+        return None
+    active_char = game.next_turn()
+    current_turn_character_id = active_char.id
+    return current_turn_character_id
+
 @app.post("/api/characters/{char_id}/inventory/{item_id}/reload")
 def reload_weapon(char_id: int, item_id: str):
-    if char_id not in game.character_table:
+    char_key = char_id if char_id in game.character_table else int(char_id)
+    if char_key not in game.character_table:
         raise HTTPException(status_code=404, detail="Character not found")
 
-    character: Character = game.character_table[char_id]
-    target_item = game.item_table[item_id]
+    character: Character = game.character_table[char_key]
+    target_item = None
+    for it in character.inventory:
+        if getattr(it, "item_id", None) == item_id:
+            target_item = it
+            break
+
+    if not target_item:
+        raise HTTPException(status_code=404, detail="Item not found in character inventory")
 
     if not isinstance(target_item, engine.items.Weapon):
         raise HTTPException(status_code=400, detail="Item is not a weapon")
 
-    success = game.character_reload(char_id, item_id)
+    game.item_table[item_id] = target_item
+    success = game.character_reload(str(char_key), item_id)
     if not success:
         return {
             "success": False,
             "message": f"Cannot reload {target_item.name}: Missing '{target_item.type} magazine' in inventory!",
             "magazine_bullets": target_item.magazine_bullets,
-            "inventory": [serialize_item(item) for item in character.inventory],
+            "inventory": [serialize_item(item, held_id=getattr(character.held_weapon, "item_id", None)) for item in character.inventory],
         }
+
+    if game_started:
+        next_id = advance_turn_if_game_active()
+
+    msg = f"Reloaded {target_item.name} to {target_item.magazine_size} bullets!"
 
     return {
         "success": True,
-        "message": f"Successfully reloaded {target_item.name} to {target_item.magazine_size} bullets!",
+        "message": msg,
         "magazine_bullets": target_item.magazine_bullets,
-        "inventory": [serialize_item(item) for item in character.inventory],
+        "current_turn_character_id": current_turn_character_id,
+        "inventory": [serialize_item(item, held_id=getattr(character.held_weapon, "item_id", None)) for item in character.inventory],
+    }
+
+@app.post("/api/characters/{char_id}/inventory/{item_id}/equip")
+def equip_weapon(char_id: int, item_id: str):
+    char_key = char_id if char_id in game.character_table else int(char_id)
+    if char_key not in game.character_table:
+        raise HTTPException(status_code=404, detail="Character not found")
+
+    character: Character = game.character_table[char_key]
+    target_item = None
+    for it in character.inventory:
+        if getattr(it, "item_id", None) == item_id:
+            target_item = it
+            break
+
+    if not target_item:
+        raise HTTPException(status_code=404, detail="Item not found in character inventory")
+
+    if not isinstance(target_item, engine.items.Weapon):
+        raise HTTPException(status_code=400, detail="Item is not a weapon")
+
+    game.item_table[item_id] = target_item
+    game.character_equip_weapon(char_key, item_id)
+
+    if game_started:
+        next_id = advance_turn_if_game_active()
+
+    msg = f"'{target_item.name}' equipped!"
+
+    return {
+        "success": True,
+        "message": msg,
+        "held_weapon_id": item_id,
+        "current_turn_character_id": current_turn_character_id,
+        "character": serialize_character(character),
+        "inventory": [serialize_item(item, held_id=item_id) for item in character.inventory],
     }
 
 @app.post("/api/game/start")
@@ -381,8 +461,10 @@ def start_game(req: StartGameRequest = None):
     game.start_game(init_vals)
     game_started = True
 
-    if game.round_table:
-        current_turn_character_id = game.round_table[game.round_pointer]
+    alive = [cid for cid in game.round_table if game.character_table[cid].health > 0]
+    if alive:
+        active_char = game.next_turn()
+        current_turn_character_id = active_char.id
     else:
         current_turn_character_id = None
 
@@ -403,7 +485,7 @@ def next_turn():
     if not alive:
         return {
             "game_over": True,
-            "message": "All characters are dead!",
+            "message": "All characters are down!",
             "current_turn_character_id": None
         }
 
@@ -413,6 +495,86 @@ def next_turn():
         "success": True,
         "current_turn_character_id": current_turn_character_id,
         "round_pointer": game.round_pointer,
+    }
+
+@app.post("/api/game/stop")
+def stop_game():
+    global game_started, current_turn_character_id
+    game_started = False
+    current_turn_character_id = None
+    game.round_table = []
+    game.round_pointer = 0
+    return {
+        "success": True,
+        "message": "Game stopped.",
+        "game_started": False,
+        "current_turn_character_id": None,
+        "round_table": []
+    }
+
+@app.post("/api/characters/{char_id}/attack")
+def character_attack_endpoint(char_id: int, req: AttackRequest):
+    char_key = char_id if char_id in game.character_table else int(char_id)
+    if char_key not in game.character_table:
+        raise HTTPException(status_code=404, detail="Attacker character not found")
+
+    target_key = req.target_id if req.target_id in game.character_table else int(req.target_id)
+    if target_key not in game.character_table:
+        raise HTTPException(status_code=404, detail="Target character not found")
+
+    attacker = game.character_table[char_key]
+    defender = game.character_table[target_key]
+
+    if game_started and current_turn_character_id is not None and char_key != current_turn_character_id:
+        raise HTTPException(status_code=400, detail="It is not this character's turn to attack!")
+
+    if attacker.held_weapon is None:
+        for it in attacker.inventory:
+            if isinstance(it, engine.items.Weapon):
+                attacker.equip_weapon(it)
+                game.item_table[it.item_id] = it
+                break
+
+    if attacker.held_weapon is None:
+        raise HTTPException(status_code=400, detail=f"'{attacker.name}' has no weapon to attack with!")
+
+    if attacker.held_weapon.magazine_bullets is not None and attacker.held_weapon.magazine_bullets <= 0:
+        return {
+            "success": False,
+            "hit": False,
+            "damage_dealt": 0,
+            "message": f"Cannot attack: '{attacker.held_weapon.name}' is out of ammo!",
+            "attacker": serialize_character(attacker),
+            "target": serialize_character(defender),
+            "current_turn_character_id": current_turn_character_id
+        }
+
+    initial_defender_health = defender.health
+
+    hit = game.character_attack(char_key, target_key, req.bodypart)
+
+    damage_dealt = max(0, initial_defender_health - defender.health)
+
+    if hit and damage_dealt > 0:
+        msg = f"Attack hit {defender.name}'s {req.bodypart}! Dealt {damage_dealt} damage."
+        if defender.health <= 0:
+            msg += f" {defender.name} is down!"
+    elif hit:
+        msg = f"Attack hit {defender.name}'s {req.bodypart}, but didn't pierce cover"
+    else:
+        msg = f"Attack from {attacker.name} missed {defender.name}."
+
+    if game_started:
+        next_id = advance_turn_if_game_active()
+
+    return {
+        "success": True,
+        "hit": hit,
+        "damage_dealt": damage_dealt,
+        "message": msg,
+        "current_turn_character_id": current_turn_character_id,
+        "attacker": serialize_character(attacker),
+        "target": serialize_character(defender)
     }
 
 @app.post("/api/game/save")

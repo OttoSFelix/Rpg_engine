@@ -5,6 +5,7 @@ interface GameControlsProps {
   onAddEnemy: () => void;
   onStartGame: () => void;
   onNextTurn: () => void;
+  onStopGame: () => void;
   onSaveGame: () => void;
   gameStarted: boolean;
   isSaving: boolean;
@@ -16,6 +17,7 @@ export const GameControls: React.FC<GameControlsProps> = ({
   onAddEnemy,
   onStartGame,
   onNextTurn,
+  onStopGame,
   onSaveGame,
   gameStarted,
   isSaving,
@@ -68,8 +70,8 @@ export const GameControls: React.FC<GameControlsProps> = ({
         </button>
       </div>
 
-      {/* Save Button */}
-      <div className="controls-row-bottom">
+      {/* Save & Stop Buttons */}
+      <div className="controls-row-bottom" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
         <button
           className="btn-ctrl save-game"
           onClick={onSaveGame}
@@ -77,6 +79,15 @@ export const GameControls: React.FC<GameControlsProps> = ({
           title="Save game to backend database"
         >
           {isSaving ? 'Saving...' : 'Save'}
+        </button>
+
+        <button
+          className="btn-ctrl stop-game"
+          onClick={onStopGame}
+          disabled={!gameStarted}
+          title={gameStarted ? 'Stop the current game' : 'Game has not started yet'}
+        >
+          Stop
         </button>
       </div>
     </div>
