@@ -1,5 +1,12 @@
 */__pycache__
+__pycache__/
+.venv/
+node_modules/
+frontend/node_modules/
+frontend/dist/
 
 testfile.py
 todo.txt
 run_tests.sh
+
+test_frontend_api.py

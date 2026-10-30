@@ -16,6 +16,19 @@ services:
       db:
         condition: service_healthy
 
+  frontend:
+    image: frontend
+    container_name: frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    environment:
+      - VITE_BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+
   db:
     image: postgres:16-alpine
     restart: unless-stopped

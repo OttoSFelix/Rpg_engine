@@ -1,5 +1,5 @@
 from engine.character import Character
-from engine.items import ItemPool
+from engine.items import ItemPool, Weapon
 from engine.generator import Generator
 from engine.database import Database
 from engine.dice import Dice
@@ -125,6 +125,8 @@ class Game:
 
         self.character_inventory = values.get('inventory', [])
 
+        self.round_table.append(character.id)
+
         return id
 
     def flush_character_traits(self, difficulty: int = 3) -> dict:
@@ -146,25 +148,50 @@ class Game:
         character: Character = self.character_table[character_id]
         character.delete_item(item_id)
 
+    def character_reload(self, character_id: str, item_id: str) -> bool:
+        character: Character = self.character_table[character_id]
+        item: Weapon = self.item_table.get(item_id)
+        if item == None:
+            return False
+        return item.reload(character)
+
+    def character_attack(self, character_id: int, target_id: int, bodypart: str) -> bool:
+        character: Character = self.character_table[character_id]
+        target: Character = self.character_table[target_id]
+
+        return character.attack(target, bodypart)
+
+    def character_equip_weapon(self, character_id: int, item_id: str) -> bool:
+        character: Character = self.character_table[character_id]
+        weapon: Weapon = self.item_table.get(item_id)
+        if weapon == None:
+            return False
+        character.equip_weapon(weapon)
+        return True
+
     def start_game(self, initiative_values) -> None:
         self.initiative_values = initiative_values
         for character_id in self.character_table.keys():
             self.round_table.append(character_id)
 
-        self.round_table.sort()
+        self.round_table.sort(key=self.key_initiative_sort)
         self.round_pointer = 0
+        while self.character_table[self.round_table[self.round_pointer]].is_down():
+            if self.round_pointer >= len(self.round_table):
+                return
+            self.round_pointer += 1
 
     def next_turn(self) -> Character:
         while True:
             character_id = self.round_table[self.round_pointer]
-            character = self.character_table[character_id]
+            character: Character = self.character_table[character_id]
 
             if self.round_pointer >= len(self.round_table) - 1:
                 self.round_pointer = 0
             else:
                 self.round_pointer += 1
 
-            if character.health > 0:
+            if not character.is_down():
                 break
 
         return character
@@ -204,7 +231,8 @@ class Game:
                 'inventory': character.inventory,
                 'injuries': character.injury,
                 'effects': character.effects,
-                'mental': character.mental
+                'mental': character.mental,
+                'stamina': character.stamina,
             }
 
         return game_state
