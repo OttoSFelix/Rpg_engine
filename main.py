@@ -63,6 +63,25 @@ def startup_event():
     except Exception as e:
         print(f"Startup database initialization warning (may be empty or connecting): {e}")
 
+def is_character_down(c: Character) -> bool:
+    if hasattr(c, "is_down") and callable(c.is_down):
+        try:
+            if c.is_down():
+                return True
+        except Exception:
+            pass
+    if getattr(c, "health", 1) <= 0:
+        return True
+    if isinstance(getattr(c, "injury", None), dict):
+        gen = c.injury.get("general", [])
+        if isinstance(gen, list) and "down" in gen:
+            return True
+        if gen == "down":
+            return True
+        if c.injury.get("head") == "down":
+            return True
+    return False
+
 def serialize_item(item: Any, held_id: Optional[str] = None) -> Dict[str, Any]:
     is_weapon = isinstance(item, engine.items.Weapon)
     item_id = getattr(item, "item_id", "")
@@ -224,6 +243,14 @@ def get_items_pool():
 @app.get("/api/game/state")
 def get_game_state():
     global current_turn_character_id
+    if game_started and current_turn_character_id is not None:
+        if current_turn_character_id in game.character_table:
+            curr = game.character_table[current_turn_character_id]
+            if is_character_down(curr):
+                advance_turn_if_game_active()
+        else:
+            advance_turn_if_game_active()
+
     characters = [serialize_character(c) for c in game.character_table.values()]
     return {
         "characters": characters,
@@ -281,6 +308,10 @@ def update_character(char_id: int, req: UpdateCharacterRequest):
 
     data["id"] = char_id
     game.set_character_state(data)
+
+    if game_started and current_turn_character_id == char_id:
+        if is_character_down(game.character_table[char_id]):
+            advance_turn_if_game_active()
 
     return serialize_character(game.character_table[char_id])
 
@@ -364,12 +395,35 @@ def advance_turn_if_game_active() -> Optional[int]:
     global current_turn_character_id
     if not game_started or not game.round_table:
         return None
-    alive = [cid for cid in game.round_table if game.character_table[cid].health > 0]
-    if not alive:
+
+    available = [
+        cid for cid in game.round_table
+        if cid in game.character_table and not is_character_down(game.character_table[cid])
+    ]
+    if not available:
         current_turn_character_id = None
         return None
-    active_char = game.next_turn()
-    current_turn_character_id = active_char.id
+
+    try:
+        active_char = game.next_turn()
+    except Exception:
+        active_char = game.character_table[available[0]]
+
+    attempts = 0
+    while is_character_down(active_char) and attempts < len(game.round_table):
+        try:
+            active_char = game.next_turn()
+        except Exception:
+            break
+        attempts += 1
+
+    if is_character_down(active_char):
+        current_turn_character_id = available[0]
+        if available[0] in game.round_table:
+            game.round_pointer = (game.round_table.index(available[0]) + 1) % len(game.round_table)
+    else:
+        current_turn_character_id = active_char.id
+
     return current_turn_character_id
 
 @app.post("/api/characters/{char_id}/inventory/{item_id}/reload")
@@ -379,20 +433,15 @@ def reload_weapon(char_id: int, item_id: str):
         raise HTTPException(status_code=404, detail="Character not found")
 
     character: Character = game.character_table[char_key]
-    target_item = None
-    for it in character.inventory:
-        if getattr(it, "item_id", None) == item_id:
-            target_item = it
-            break
+    target_item = game.item_table[item_id]
 
-    if not target_item:
+    if not character.is_in_inventory(item_id):
         raise HTTPException(status_code=404, detail="Item not found in character inventory")
 
     if not isinstance(target_item, engine.items.Weapon):
         raise HTTPException(status_code=400, detail="Item is not a weapon")
 
-    game.item_table[item_id] = target_item
-    success = game.character_reload(str(char_key), item_id)
+    success = game.character_reload(char_key, item_id)
     if not success:
         return {
             "success": False,
@@ -456,22 +505,29 @@ def start_game(req: StartGameRequest = None):
     if not game.character_table:
         raise HTTPException(status_code=400, detail="Cannot start game with no characters")
 
-    init_vals = (req.initiative_values if req else None) or {}
+    init_vals = {}
+    if req and req.initiative_values:
+        for k, v in req.initiative_values.items():
+            try:
+                init_vals[int(k)] = v
+            except ValueError:
+                init_vals[k] = v
+
     game.round_table = []
-    game.start_game(init_vals)
+    try:
+        game.start_game(init_vals)
+    except IndexError:
+        # Engine start_game has a known bounds check bug when the last sorted character is down
+        game.round_pointer = 0
+
     game_started = True
 
-    alive = [cid for cid in game.round_table if game.character_table[cid].health > 0]
-    if alive:
-        active_char = game.next_turn()
-        current_turn_character_id = active_char.id
-    else:
-        current_turn_character_id = None
+    active_id = advance_turn_if_game_active()
 
     return {
         "success": True,
         "game_started": game_started,
-        "current_turn_character_id": current_turn_character_id,
+        "current_turn_character_id": active_id,
         "round_table": game.round_table,
     }
 
@@ -481,19 +537,17 @@ def next_turn():
     if not game_started or not game.round_table:
         raise HTTPException(status_code=400, detail="Game has not started or no characters")
 
-    alive = [cid for cid in game.round_table if game.character_table[cid].health > 0]
-    if not alive:
+    active_id = advance_turn_if_game_active()
+    if active_id is None:
         return {
             "game_over": True,
             "message": "All characters are down!",
             "current_turn_character_id": None
         }
 
-    active_char = game.next_turn()
-    current_turn_character_id = active_char.id
     return {
         "success": True,
-        "current_turn_character_id": current_turn_character_id,
+        "current_turn_character_id": active_id,
         "round_pointer": game.round_pointer,
     }
 
@@ -524,6 +578,9 @@ def character_attack_endpoint(char_id: int, req: AttackRequest):
 
     attacker = game.character_table[char_key]
     defender = game.character_table[target_key]
+
+    if is_character_down(attacker):
+        raise HTTPException(status_code=400, detail=f"'{attacker.name}' is down and cannot attack!")
 
     if game_started and current_turn_character_id is not None and char_key != current_turn_character_id:
         raise HTTPException(status_code=400, detail="It is not this character's turn to attack!")

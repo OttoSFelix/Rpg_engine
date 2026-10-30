@@ -31,6 +31,12 @@ export const AttackModal: React.FC<AttackModalProps> = ({
 
   if (!isOpen || !attacker) return null;
 
+  const isAttackerDown =
+    attacker.health <= 0 ||
+    (Array.isArray(attacker.injury?.general)
+      ? attacker.injury.general.includes('down')
+      : attacker.injury?.general === 'down');
+
   // Potential targets: all characters except attacker
   const potentialTargets = characters.filter((c) => c.id !== attacker.id && !c.isNewDraft);
   const selectedTarget = characters.find((c) => c.id === selectedTargetId) || null;
@@ -39,7 +45,7 @@ export const AttackModal: React.FC<AttackModalProps> = ({
   const equippedWeapon = attacker.inventory.find((it) => it.is_weapon) || null;
 
   const handleConfirmAttack = async () => {
-    if (!selectedTargetId || !selectedBodypart) return;
+    if (isAttackerDown || !selectedTargetId || !selectedBodypart) return;
     setIsSubmitting(true);
     try {
       await onExecuteAttack(attacker.id, selectedTargetId, selectedBodypart);
@@ -55,7 +61,7 @@ export const AttackModal: React.FC<AttackModalProps> = ({
         {/* Header */}
         <div className="attack-modal-header">
           <div>
-            <div className="attack-modal-title">⚔️ Select Attack Target</div>
+            <div className="attack-modal-title">Select Attack Target</div>
             <div className="attack-modal-subtitle">
               Attacker: <strong style={{ color: '#fff' }}>{attacker.name}</strong>
               {equippedWeapon ? (
@@ -88,7 +94,11 @@ export const AttackModal: React.FC<AttackModalProps> = ({
             <div className="attack-target-grid">
               {potentialTargets.map((target) => {
                 const isSelected = target.id === selectedTargetId;
-                const isDown = target.health <= 0;
+                const isDown =
+                  target.health <= 0 ||
+                  (Array.isArray(target.injury?.general)
+                    ? target.injury.general.includes('down')
+                    : target.injury?.general === 'down');
                 return (
                   <div
                     key={target.id}
@@ -150,7 +160,7 @@ export const AttackModal: React.FC<AttackModalProps> = ({
                   <span className="bodypart-label">{bp.label}</span>
                   {selectedTarget && (
                     <span className="bodypart-hp">
-                      HP: {bpHealth} {isInjured && '⚠️'}
+                      HP: {bpHealth}
                     </span>
                   )}
                 </button>
@@ -160,6 +170,11 @@ export const AttackModal: React.FC<AttackModalProps> = ({
         </div>
 
         {/* Actions */}
+        {isAttackerDown && (
+          <div style={{ color: '#ef4444', textAlign: 'center', marginBottom: '8px', fontSize: '0.85rem', fontWeight: 600 }}>
+            Attacker is down and cannot perform an attack!
+          </div>
+        )}
         <div className="attack-modal-actions">
           <button className="btn-action" onClick={onClose} disabled={isSubmitting}>
             Cancel
@@ -167,10 +182,10 @@ export const AttackModal: React.FC<AttackModalProps> = ({
 
           <button
             className="btn-action attack-strike-btn"
-            disabled={!selectedTargetId || !selectedBodypart || isSubmitting}
+            disabled={!selectedTargetId || !selectedBodypart || isSubmitting || isAttackerDown}
             onClick={handleConfirmAttack}
           >
-            {isSubmitting ? 'Attacking...' : `Attack`}
+            {isSubmitting ? 'Attacking...' : isAttackerDown ? 'Attacker Down' : `Attack`}
           </button>
         </div>
       </div>

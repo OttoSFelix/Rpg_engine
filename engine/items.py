@@ -51,7 +51,7 @@ class ItemPool:
             damage=3,
             damage_type='sharp',
             range=50,
-            bullet_amount=None,
+            bullet_amount=2,
             magazine_size=ItemPool.RAVAGE_MAGAZINE_SIZE,
             miss_threshold=ItemPool.RAVAGE_MISS_THRESHOLD,
             hit_threshold=ItemPool.RAVAGE_HIT_THRESHOLD,

@@ -104,10 +104,20 @@ class Character:
         'melee': self.melee, 'special': self.special, 'stealth': self.stealth, 'hardware': self.hardware, 'ordnance': self.ordnance, 'medical': self.medical}
 
     def attack(self, target: 'Character', bodypart: str) -> bool:
+        if self.is_down():
+            return False
+
         if not self.mental_check():
             return False
 
-        target_initial_bodypart_health = target.get_bodypart_health(bodypart)
+        target_initial_bodypart_health = {
+            'head': target.head,
+            'torso': target.torso,
+            'right_arm': target.right_arm,
+            'left_arm': target.left_arm,
+            'right_leg': target.right_leg,
+            'left_leg': target.left_leg
+            }
 
         modifier = 0
         if self.held_weapon.type == "sharpstrike":
@@ -128,17 +138,21 @@ class Character:
 
         total_damage = 0
         for r in rolls:
-            damage = self.held_weapon.hit_table(r, target, bodypart)
-            if damage[0] <= 0:
+            damage, hit_bodypart = self.held_weapon.hit_table(r, target, bodypart)
+
+            if damage <= 0:
                 continue
-            total_damage += damage[0]
-            target.bodypart_damage(damage[1], damage[0])
+            total_damage += damage
+            target.bodypart_damage(hit_bodypart, damage)
 
         if total_damage > 0:
             target.health -= total_damage
 
-            if target.get_bodypart_health(bodypart) == 0 and target_initial_bodypart_health != 0:
-                target.injure(bodypart, total_damage, self.held_weapon.damage_type)
+            for part in target_initial_bodypart_health.keys():
+                initial_health = target_initial_bodypart_health[part]
+                current_health = target.get_bodypart_health(part)
+                if current_health == 0 and initial_health != 0:
+                    target.injure(part, initial_health - current_health, self.held_weapon.damage_type)
 
             return True
         return False
@@ -283,7 +297,10 @@ class Character:
         if bodypart == 'general':
             self.injury[bodypart].append(injury)
         else:
-            self.injury[bodypart] = injury
+            if bodypart == 'head' and injury == 'down':
+                self.injury['general'].append(injury)
+            else:
+                self.injury[bodypart] = injury
 
     def cure(self, bodypart: str) -> None:
         self.injury[bodypart] = None
@@ -547,6 +564,14 @@ class Character:
         for part, injury in self.injury.items():
             self.injury[part] = None
         self.injury['general'] = []
+
+    def is_down(self):
+        for injury in self.injury['general']:
+            if injury == 'down':
+                return True
+        if self.health <= 0:
+            return True
+        return False
 
     def __str__(self):
         string = ""

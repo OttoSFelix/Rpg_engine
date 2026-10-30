@@ -176,7 +176,7 @@ class Game:
 
         self.round_table.sort(key=self.key_initiative_sort)
         self.round_pointer = 0
-        while self.character_table[self.round_table[self.round_pointer]].health <= 0:
+        while self.character_table[self.round_table[self.round_pointer]].is_down():
             if self.round_pointer >= len(self.round_table):
                 return
             self.round_pointer += 1
@@ -184,14 +184,14 @@ class Game:
     def next_turn(self) -> Character:
         while True:
             character_id = self.round_table[self.round_pointer]
-            character = self.character_table[character_id]
+            character: Character = self.character_table[character_id]
 
             if self.round_pointer >= len(self.round_table) - 1:
                 self.round_pointer = 0
             else:
                 self.round_pointer += 1
 
-            if character.health > 0:
+            if not character.is_down():
                 break
 
         return character

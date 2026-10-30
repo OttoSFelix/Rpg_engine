@@ -73,8 +73,15 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
   };
 
   // Check injuries
-  const isDown = character.health <= 0 || character.injury?.head === 'down';
-  const hasHeadInjury = !!character.injury?.head && character.injury.head !== 'None';
+  const isDown =
+    character.health <= 0 ||
+    (Array.isArray(character.injury?.general)
+      ? character.injury.general.includes('down')
+      : character.injury?.general === 'down');
+  const hasHeadInjury =
+    !!character.injury?.head &&
+    character.injury.head !== 'None' &&
+    character.injury.head !== 'down';
   const hasTorsoInjury = !!character.injury?.torso && character.injury.torso !== 'None';
   const hasLeftArmInjury = !!character.injury?.left_arm && character.injury.left_arm !== 'None';
   const hasRightArmInjury = !!character.injury?.right_arm && character.injury.right_arm !== 'None';
@@ -85,6 +92,10 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
 
   const handleAttackClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (isDown) {
+      onToast("Character is down and cannot attack.");
+      return;
+    }
     if (!isCurrentTurn) {
       onToast("Attack is only available to the character whose turn it currently is.");
       return;
@@ -178,7 +189,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
                 <span className="injury-hover-badge">down</span>
               </div>
             )}
-            {hasHeadInjury && !isDown && (
+            {hasHeadInjury && (
               <div className="injury-icon-wrapper" title={character.injury.head!}>
                 <img src="/images/head_injury.png" alt="Head Injury" className="injury-icon" />
                 <span className="injury-hover-badge">{character.injury.head}</span>
@@ -410,16 +421,18 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
             </button>
 
             <button
-              className={`btn-action attack-btn ${!isCurrentTurn ? 'disabled' : ''}`}
-              disabled={!isCurrentTurn}
+              className={`btn-action attack-btn ${!isCurrentTurn || isDown ? 'disabled' : ''}`}
+              disabled={!isCurrentTurn || isDown}
               onClick={handleAttackClick}
               title={
-                isCurrentTurn
+                isDown
+                  ? 'Character is down and cannot attack'
+                  : isCurrentTurn
                   ? 'Attack a target'
                   : "Attack is only available to the character whose turn it currently is"
               }
             >
-              Attack {isCurrentTurn ? '' : '(Not Turn)'}
+              Attack {isDown ? '(Down)' : !isCurrentTurn ? '(Not Turn)' : ''}
             </button>
 
             {onDeleteCharacter && !character.isNewDraft && (
